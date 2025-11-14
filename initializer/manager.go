@@ -138,15 +138,17 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 		m.logger.Debug("Casbin already initialized on manager")
 		return nil
 	}
+
 	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
 		m.logger.Error(
 			"policy file does not exist",
 			zap.String("path", policyPath),
 		)
-		// Attempt to copy the default policy file to the specified path
-		data, err := os.ReadFile(config.CASBIN_POLICY_FILE)
-		if err != nil {
-			m.logger.Error("failed to read default policy file", zap.Error(err))
+		// Attempt to copy the embedded default policy file to the specified path
+		// Use embedded default instead of reading from relative path
+		data := config.DefaultPolicy // Embedded bytes, no file I/O needed
+		if len(data) == 0 {
+			m.logger.Error("embedded default policy file is empty")
 			return errors.New("policy file not found and default not available")
 		}
 		if err := os.WriteFile(policyPath, data, 0644); err != nil {
@@ -155,6 +157,7 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 		}
 		m.logger.Info("successfully copied default policy to", zap.String("path", policyPath))
 	}
+
 	adapter := fileadapter.NewAdapter(policyPath)
 	enf, err := casbin.NewEnforcer(modelPath, adapter)
 	if err != nil {
