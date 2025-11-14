@@ -1,12 +1,8 @@
 package utils
 
-import (
-	"testing"
-)
-
-func TestErrorNotFound(t *testing.T) {
-	newError := ErrStaffNotFound
-	if IsNotFound(newError) != true {
-		t.Error("ErrNotFound should return true for ErrNotFound")
-	}
-}
+// func TestErrorNotFound(t *testing.T) {
+// 	newError := ErrStaffNotFound
+// 	if IsNotFound(newError) != true {
+// 		t.Error("ErrNotFound should return true for ErrNotFound")
+// 	}
+// }

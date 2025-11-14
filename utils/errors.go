@@ -2,10 +2,10 @@ package utils
 
 import (
 	"errors"
-	"fmt"
-	"strings"
+)
 
-	"gorm.io/gorm"
+var (
+	ErrNoEnvVar = errors.New("no env variable with this name")
 )
 
 // When the staff is not found for the provided staff_id (ref_id)
@@ -89,62 +89,3 @@ var (
 var (
 	ErrReligionAlreadyExists = errors.New("religion with this name already exists")
 )
-
-func GetDoesNotBelongErr(resource string, staffID string) error {
-	return fmt.Errorf("%s does not belong to the staff %s", resource, staffID)
-}
-func IsNotFound(err error) bool {
-	// Checking for Sentinel Errors.
-	if errors.Is(err, ErrRecordsNotFound) || errors.Is(err, ErrStaffNotFound) || errors.Is(err, gorm.ErrRecordNotFound) {
-		return true
-	}
-	// Check for "record not found" substring in the error message.
-	// Temporary, and will be removed once all the code is migrated to use sentinel errors.
-	return strings.Contains(err.Error(), "record not found") || strings.Contains(err.Error(), "not found")
-}
-func IsInternalErr(err error) bool {
-	return errors.Is(err, ErrInternalServerError)
-}
-func IsDoesNotBelongErr(err error) bool {
-	return strings.Contains(err.Error(), "belong to")
-}
-func GetNotFoundErrorMessage(product string) error {
-	return fmt.Errorf("%s not found", product)
-}
-func IsBadRequest(err error) bool {
-	return errors.Is(err, ErrBadRequest) || errors.Is(err, ErrInvalidStaffID) || errors.Is(err, ErrInvalidID)
-}
-func IsAlreadyExists(err error) bool {
-	errMsg := err.Error()
-	return strings.Contains(errMsg, "already exists") || strings.Contains(errMsg, "duplicate")
-}
-func GetFailedToFetchErr(recordName string) error {
-	return getfailedTotext("fetch", recordName)
-}
-func GetFailedToCreateErr(recordName string) error {
-	return getfailedTotext("create", recordName)
-}
-func GetFailedToUpdateErr(resourceName string) error {
-	return getfailedTotext("update", resourceName)
-}
-func GetDeletedSuccessfullyMessage(recordName string) string {
-	return fmt.Sprintf("%s deleted successfully", recordName)
-}
-func getfailedTotext(operation string, recordName string) error {
-	return fmt.Errorf("failed to %s %s", operation, recordName)
-}
-func GetInvalidResourceDataErr(resourceName string) error {
-	return fmt.Errorf("invalid %s data provided", resourceName)
-}
-func GetRecordAlreadyExistsErr(recordName string) error {
-	return fmt.Errorf("%s already exists", recordName)
-}
-func GetEnvVarNotSetErr(envVarName string) error {
-	return fmt.Errorf("environment variable %s not set", envVarName)
-}
-func GetEnvVarNotValidErr(envVarName string) error {
-	return fmt.Errorf("environment variable %s not valid", envVarName)
-}
-func GetResourceCanotBeNilErr(resource string) error {
-	return fmt.Errorf("%v can not be nil", resource)
-}

@@ -10,6 +10,7 @@ import (
 	"github.com/aruncs31s/azf/domain/api_usage"
 	"github.com/aruncs31s/azf/infrastructure/persistence"
 	"github.com/aruncs31s/azf/shared/logger"
+	"github.com/aruncs31s/azf/utils"
 	"github.com/casbin/casbin/v2"
 	fileadapter "github.com/casbin/casbin/v2/persist/file-adapter"
 	"go.uber.org/zap"
@@ -70,26 +71,32 @@ func (m *Manager) InitLocalDB(tempDB *gorm.DB) error {
 	}
 
 	// Try to create/open file-backed DB
-	localDBPath := "/tmp/AZF_auth_z.db"
+	localDBPath := "tmp/AZF_auth_z.db"
 	// best-effort ensure directory exists
-	_ = os.MkdirAll("/tmp", 0755)
+	_ = os.MkdirAll("tmp", 0755)
 
 	db, err := gorm.Open(sqlite.Open(localDBPath), &gorm.Config{
 		SkipDefaultTransaction: true,
 	})
 	if err != nil {
 		// fallback to in-memory DB
-		m.logger.Error("failed to open file sqlite DB, falling back to in-memory", zap.Error(err))
+		m.logger.Error("failed to open file sqlite DB, falling back to in-memory",
+			zap.Error(err),
+		)
 		memDB, memErr := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
 			SkipDefaultTransaction: true,
 		})
 		if memErr != nil {
-			m.logger.Error("failed to open in-memory sqlite fallback", zap.Error(memErr))
+			m.logger.Error("failed to open in-memory sqlite fallback",
+				zap.Error(memErr),
+			)
 			return memErr
 		}
 		m.DB = memDB
 		if err := migrateTable(m.DB); err != nil {
-			m.logger.Error("migration failed on in-memory DB", zap.Error(err))
+			m.logger.Error("migration failed on in-memory DB",
+				zap.Error(err),
+			)
 			return err
 		}
 		m.logger.Info("initialized in-memory local DB")
@@ -131,14 +138,23 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 		m.logger.Debug("Casbin already initialized on manager")
 		return nil
 	}
-
-	if modelPath == "" {
-		modelPath = config.CASBIN_MODEL_FILE
+	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
+		m.logger.Error(
+			"policy file does not exist",
+			zap.String("path", policyPath),
+		)
+		// Attempt to copy the default policy file to the specified path
+		data, err := os.ReadFile(config.CASBIN_POLICY_FILE)
+		if err != nil {
+			m.logger.Error("failed to read default policy file", zap.Error(err))
+			return errors.New("policy file not found and default not available")
+		}
+		if err := os.WriteFile(policyPath, data, 0644); err != nil {
+			m.logger.Error("failed to write policy file", zap.Error(err))
+			return errors.New("policy file not found and could not write")
+		}
+		m.logger.Info("successfully copied default policy to", zap.String("path", policyPath))
 	}
-	if policyPath == "" {
-		policyPath = config.CASBIN_POLICY_FILE
-	}
-
 	adapter := fileadapter.NewAdapter(policyPath)
 	enf, err := casbin.NewEnforcer(modelPath, adapter)
 	if err != nil {
@@ -295,9 +311,16 @@ func NewAndInitManager(tempDB *gorm.DB, casbinEnforcer *casbin.Enforcer, zapLogg
 		m.mu.Unlock()
 		return m, nil
 	}
-
+	modelPath, err := utils.GetEnv("CASBIN_MODEL")
+	if err != nil {
+		modelPath = config.CASBIN_MODEL_FILE
+	}
+	policyPath, err := utils.GetEnv("CASBIN_POLICY")
+	if err != nil {
+		policyPath = config.CASBIN_POLICY_FILE
+	}
 	// otherwise initialize from default config paths
-	if err := m.InitCasbin("", ""); err != nil {
+	if err := m.InitCasbin(modelPath, policyPath); err != nil {
 		// return the error so callers can decide how to proceed
 		return m, err
 	}

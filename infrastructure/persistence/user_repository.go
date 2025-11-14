@@ -28,7 +28,7 @@ type UserModel struct {
 }
 
 func (UserModel) TableName() string {
-	return "users"
+	return "authz_users"
 }
 
 type RoleData struct {
