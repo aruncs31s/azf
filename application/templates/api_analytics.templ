@@ -1,0 +1,304 @@
+//go:generate templ generate
+
+package templates
+
+import (
+	"fmt"
+	"github.com/aruncs31s/azf/application/service"
+	"github.com/aruncs31s/azf/domain/api_usage"
+	"net/url"
+	"time"
+)
+
+type APIAnalyticsPageData struct {
+	GeneratedAt          time.Time
+	TopEndpoints         []api_usage.APIEndpointRanking
+	SlowestEndpoints     []api_usage.APIEndpointRanking
+	MostErroredEndpoints []api_usage.APIEndpointRanking
+	UsageSummary         service.UsageSummaryDTO
+	TrendData            []service.UsageTrendDTO
+}
+
+templ APIAnalyticsPage(data APIAnalyticsPageData) {
+	@BaseLayoutWithSidebar(BaseLayoutData{
+		Title:       "API Analytics",
+		Description: "View API usage analytics and performance metrics",
+		CurrentPage: "analytics",
+	}, "") {
+		<div class="flex-1 flex flex-col overflow-hidden">
+			<!-- Header -->
+			<header class="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+				<div class="flex items-center justify-between">
+					<div>
+						<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">API Analytics</h2>
+						<p class="text-sm text-gray-600 dark:text-gray-400">Track API usage and performance metrics</p>
+					</div>
+					<div class="flex items-center space-x-4">
+						<span class="text-xs text-gray-500 dark:text-gray-400">
+							Last updated: { data.GeneratedAt.Format("2006-01-02 15:04:05") }
+						</span>
+					</div>
+				</div>
+			</header>
+			<!-- Main Content -->
+			<main class="flex-1 overflow-y-auto p-6">
+				<!-- Summary Cards -->
+				<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+					<!-- Total Requests Card -->
+					<div class="bg-gradient-to-br from-blue-50 dark:from-blue-900/20 to-blue-100 dark:to-blue-800/20 rounded-lg p-6 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition dark:shadow-gray-900/50">
+						<div class="flex items-center justify-between mb-4">
+							<i class="fas fa-chart-bar text-blue-500 text-2xl"></i>
+							<span class="text-xs bg-blue-200 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">Total</span>
+						</div>
+						<div class="text-gray-600 dark:text-gray-400 text-sm font-semibold">Total Requests</div>
+						<div class="text-3xl font-bold text-blue-600 dark:text-blue-400 mt-2">
+							{ fmt.Sprintf("%d", data.UsageSummary.TotalRequests) }
+						</div>
+						<div class="text-xs text-gray-600 dark:text-gray-400 mt-2">All API calls across all endpoints</div>
+					</div>
+					<!-- Success Rate Card -->
+					<div class="bg-gradient-to-br from-green-50 dark:from-green-900/20 to-green-100 dark:to-green-800/20 rounded-lg p-6 border-l-4 border-green-500 shadow-sm hover:shadow-md transition dark:shadow-gray-900/50">
+						<div class="flex items-center justify-between mb-4">
+							<i class="fas fa-check-circle text-green-500 text-2xl"></i>
+							<span class="text-xs bg-green-200 dark:bg-green-900 text-green-800 dark:text-green-200 px-2 py-1 rounded">Success</span>
+						</div>
+						<div class="text-gray-600 dark:text-gray-400 text-sm font-semibold">Success Rate</div>
+						<div class="text-3xl font-bold text-green-600 dark:text-green-400 mt-2">
+							{ fmt.Sprintf("%.1f%%", data.UsageSummary.SuccessRate) }
+						</div>
+						<div class="text-xs text-gray-600 dark:text-gray-400 mt-2">
+							{ fmt.Sprintf("%d successful requests", data.UsageSummary.SuccessfulRequests) }
+						</div>
+					</div>
+					<!-- Error Count Card -->
+					<div class="bg-gradient-to-br from-red-50 dark:from-red-900/20 to-red-100 dark:to-red-800/20 rounded-lg p-6 border-l-4 border-red-500 shadow-sm hover:shadow-md transition dark:shadow-gray-900/50">
+						<div class="flex items-center justify-between mb-4">
+							<i class="fas fa-exclamation-circle text-red-500 text-2xl"></i>
+							<span class="text-xs bg-red-200 dark:bg-red-900 text-red-800 dark:text-red-200 px-2 py-1 rounded">Errors</span>
+						</div>
+						<div class="text-gray-600 dark:text-gray-400 text-sm font-semibold">Failed Requests</div>
+						<div class="text-3xl font-bold text-red-600 dark:text-red-400 mt-2">
+							{ fmt.Sprintf("%d", data.UsageSummary.FailedRequests) }
+						</div>
+						<div class="text-xs text-gray-600 dark:text-gray-400 mt-2">
+							Error rate: { fmt.Sprintf("%.1f%%", data.UsageSummary.ErrorRate) }
+						</div>
+					</div>
+					<!-- Avg Response Time Card -->
+					<div class="bg-gradient-to-br from-purple-50 dark:from-purple-900/20 to-purple-100 dark:to-purple-800/20 rounded-lg p-6 border-l-4 border-purple-500 shadow-sm hover:shadow-md transition dark:shadow-gray-900/50">
+						<div class="flex items-center justify-between mb-4">
+							<i class="fas fa-clock text-purple-500 text-2xl"></i>
+							<span class="text-xs bg-purple-200 dark:bg-purple-900 text-purple-800 dark:text-purple-200 px-2 py-1 rounded">Performance</span>
+						</div>
+						<div class="text-gray-600 dark:text-gray-400 text-sm font-semibold">Avg Response Time</div>
+						<div class="text-3xl font-bold text-purple-600 dark:text-purple-400 mt-2">
+							{ fmt.Sprintf("%dms", data.UsageSummary.AvgResponseTime) }
+						</div>
+						<div class="text-xs text-gray-600 dark:text-gray-400 mt-2">
+							Min: { fmt.Sprintf("%dms", data.UsageSummary.MinResponseTime) } | Max: { fmt.Sprintf("%dms", data.UsageSummary.MaxResponseTime) }
+						</div>
+					</div>
+				</div>
+				<!-- Two Column Layout: Top Endpoints and Slowest -->
+				<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+					<!-- Top Endpoints Table -->
+					<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition">
+						<div class="bg-gradient-to-r from-blue-50 dark:from-blue-900/30 to-blue-100 dark:to-blue-800/30 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+							<h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+								<i class="fas fa-fire text-orange-500 mr-2"></i>Top Endpoints
+							</h3>
+							<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Most frequently used API endpoints</p>
+						</div>
+						<div class="overflow-x-auto">
+							<table class="w-full text-sm">
+								<thead>
+									<tr class="text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+										<th class="px-4 py-3">Rank</th>
+										<th class="px-4 py-3">Method</th>
+										<th class="px-4 py-3">Endpoint</th>
+										<th class="px-4 py-3 text-right">Requests</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+									for _, endpoint := range data.TopEndpoints {
+										<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+											<td class="px-4 py-3 font-bold text-blue-600 dark:text-blue-400 w-12">
+												#{ fmt.Sprintf("%d", endpoint.Rank) }
+											</td>
+											<td class="px-4 py-3">
+												<span
+													class={
+														"px-2 py-1 rounded text-xs font-semibold whitespace-nowrap",
+														templ.KV("bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200", endpoint.Method == "GET"),
+														templ.KV("bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200", endpoint.Method == "POST"),
+														templ.KV("bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200", endpoint.Method == "PUT"),
+														templ.KV("bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200", endpoint.Method == "PATCH"),
+														templ.KV("bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200", endpoint.Method == "DELETE"),
+													}
+												>
+													{ endpoint.Method }
+												</span>
+											</td>
+											<td class="px-4 py-3 text-gray-900 dark:text-gray-100 font-mono text-xs truncate max-w-xs" title={ endpoint.Endpoint }>
+												<a href={ fmt.Sprintf("/admin-ui/api_analytics/endpoint?endpoint=%s&method=%s", url.QueryEscape(endpoint.Endpoint), endpoint.Method) } class="text-blue-600 dark:text-blue-400 hover:underline">
+													{ endpoint.Endpoint }
+												</a>
+											</td>
+											<td class="px-4 py-3 font-bold text-gray-900 dark:text-gray-100 text-right">
+												{ fmt.Sprintf("%d", endpoint.TotalRequests) }
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+							if len(data.TopEndpoints) == 0 {
+								<div class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+									<i class="fas fa-inbox text-2xl mb-2"></i>
+									<p class="text-sm">No API usage data yet</p>
+								</div>
+							}
+						</div>
+					</div>
+					<!-- Slowest Endpoints Table -->
+					<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition">
+						<div class="bg-gradient-to-r from-red-50 dark:from-red-900/30 to-red-100 dark:to-red-800/30 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+							<h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+								<i class="fas fa-snail text-red-500 mr-2"></i>Slowest Endpoints
+							</h3>
+							<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Endpoints with highest response times</p>
+						</div>
+						<div class="overflow-x-auto">
+							<table class="w-full text-sm">
+								<thead>
+									<tr class="text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+										<th class="px-4 py-3">Rank</th>
+										<th class="px-4 py-3">Endpoint</th>
+										<th class="px-4 py-3 text-right">Avg Time</th>
+										<th class="px-4 py-3">Status</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+									for _, endpoint := range data.SlowestEndpoints {
+										<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+											<td class="px-4 py-3 font-bold text-red-600 dark:text-red-400 w-12">
+												#{ fmt.Sprintf("%d", endpoint.Rank) }
+											</td>
+											<td class="px-4 py-3 text-gray-900 dark:text-gray-100 font-mono text-xs truncate max-w-xs" title={ endpoint.Endpoint }>
+												<a href={ fmt.Sprintf("/admin-ui/api_analytics/endpoint?endpoint=%s&method=%s", url.QueryEscape(endpoint.Endpoint), endpoint.Method) } class="text-blue-600 dark:text-blue-400 hover:underline">
+													{ endpoint.Endpoint }
+												</a>
+											</td>
+											<td class="px-4 py-3 font-bold text-right">
+												if endpoint.AvgResponseTime > 1000 {
+													<span class="text-red-600 dark:text-red-400">{ fmt.Sprintf("%dms", endpoint.AvgResponseTime) }</span>
+												} else if endpoint.AvgResponseTime > 500 {
+													<span class="text-yellow-600 dark:text-yellow-400">{ fmt.Sprintf("%dms", endpoint.AvgResponseTime) }</span>
+												} else {
+													<span class="text-green-600 dark:text-green-400">{ fmt.Sprintf("%dms", endpoint.AvgResponseTime) }</span>
+												}
+											</td>
+											<td class="px-4 py-3">
+												if endpoint.ErrorRequests == 0 {
+													<span class="px-2 py-1 rounded text-xs font-semibold bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200">Healthy</span>
+												} else {
+													<span class="px-2 py-1 rounded text-xs font-semibold bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200">Errors</span>
+												}
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+							if len(data.SlowestEndpoints) == 0 {
+								<div class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+									<i class="fas fa-inbox text-2xl mb-2"></i>
+									<p class="text-sm">No slowdown data yet</p>
+								</div>
+							}
+						</div>
+					</div>
+				</div>
+				<!-- Most Errored Endpoints Table -->
+				<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition mb-8">
+					<div class="bg-gradient-to-r from-orange-50 dark:from-orange-900/30 to-orange-100 dark:to-orange-800/30 px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+						<h3 class="text-lg font-semibold text-gray-800 dark:text-gray-200">
+							<i class="fas fa-exclamation-triangle text-red-500 mr-2"></i>Most Errored Endpoints
+						</h3>
+						<p class="text-xs text-gray-600 dark:text-gray-400 mt-1">Endpoints with highest error rates</p>
+					</div>
+					<div class="overflow-x-auto">
+						<table class="w-full text-sm">
+							<thead>
+								<tr class="text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+									<th class="px-4 py-3">Rank</th>
+									<th class="px-4 py-3">Method</th>
+									<th class="px-4 py-3">Endpoint</th>
+									<th class="px-4 py-3 text-right">Total</th>
+									<th class="px-4 py-3 text-right">Success</th>
+									<th class="px-4 py-3 text-right">Errors</th>
+									<th class="px-4 py-3 text-right">Error Rate</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+								for _, endpoint := range data.MostErroredEndpoints {
+									<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+										<td class="px-4 py-3 font-bold text-orange-600 dark:text-orange-400 w-12">
+											#{ fmt.Sprintf("%d", endpoint.Rank) }
+										</td>
+										<td class="px-4 py-3">
+											<span
+												class={
+													"px-2 py-1 rounded text-xs font-semibold whitespace-nowrap",
+													templ.KV("bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200", endpoint.Method == "GET"),
+													templ.KV("bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200", endpoint.Method == "POST"),
+													templ.KV("bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200", endpoint.Method == "PUT"),
+													templ.KV("bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200", endpoint.Method == "PATCH"),
+													templ.KV("bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200", endpoint.Method == "DELETE"),
+												}
+											>
+												{ endpoint.Method }
+											</span>
+										</td>
+										<td class="px-4 py-3 text-gray-900 dark:text-gray-100 font-mono text-xs truncate max-w-xs" title={ endpoint.Endpoint }>
+											<a href={ fmt.Sprintf("/admin-ui/api_analytics/endpoint?endpoint=%s&method=%s", url.QueryEscape(endpoint.Endpoint), endpoint.Method) } class="text-blue-600 dark:text-blue-400 hover:underline">
+												{ endpoint.Endpoint }
+											</a>
+										</td>
+										<td class="px-4 py-3 font-bold text-gray-900 dark:text-gray-100 text-right">
+											{ fmt.Sprintf("%d", endpoint.TotalRequests) }
+										</td>
+										<td class="px-4 py-3 text-green-600 dark:text-green-400 font-bold text-right">
+											{ fmt.Sprintf("%d", endpoint.SuccessRequests) }
+										</td>
+										<td class="px-4 py-3 text-red-600 dark:text-red-400 font-bold text-right">
+											{ fmt.Sprintf("%d", endpoint.ErrorRequests) }
+										</td>
+										<td class="px-4 py-3 font-bold text-right">
+											if endpoint.TotalRequests > 0 {
+												<span class={ templ.KV("text-red-600 dark:text-red-400 font-bold", float64(endpoint.ErrorRequests)/float64(endpoint.TotalRequests) > 0.1) }>
+													{ fmt.Sprintf("%.1f%%", float64(endpoint.ErrorRequests)/float64(endpoint.TotalRequests)*100) }
+												</span>
+											} else {
+												<span class="text-gray-500 dark:text-gray-400">0%</span>
+											}
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+						if len(data.MostErroredEndpoints) == 0 {
+							<div class="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+								<i class="fas fa-inbox text-2xl mb-2"></i>
+								<p class="text-sm">All endpoints performing well!</p>
+							</div>
+						}
+					</div>
+				</div>
+				<!-- Footer -->
+				<div class="text-center text-xs text-gray-500 dark:text-gray-400 mt-8 pb-4">
+					<p>API Analytics Dashboard • Last updated: { data.GeneratedAt.Format("2006-01-02 15:04:05") }</p>
+				</div>
+			</main>
+			@Footer()
+		</div>
+	}
+}

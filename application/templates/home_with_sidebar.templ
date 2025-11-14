@@ -1,0 +1,136 @@
+//go:generate templ generate
+
+package templates
+
+import "fmt"
+
+templ HomePageWithSidebar(data HomePageData) {
+	@BaseLayoutWithSidebar(BaseLayoutData{
+		Title:       "Dashboard",
+		Description: "Admin Dashboard for AZF Authorization Framework",
+		CurrentPage: "home",
+	}, data.AdminUsername) {
+		<div class="flex-1 flex flex-col overflow-hidden">
+			<div class="flex-1 flex flex-col overflow-hidden">
+				<header class="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+					<h2 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h2>
+					<p class="text-sm text-gray-600 dark:text-gray-400">Welcome back, { data.AdminUsername }</p>
+				</header>
+				<main class="flex-1 overflow-y-auto p-6">
+					<!-- Quick Stats Grid -->
+					<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+						@StatCard("Total Routes", fmt.Sprintf("%d", data.TotalRoutes), "fas fa-route", "bg-blue-100 dark:bg-blue-900/30", "text-blue-600 dark:text-blue-400", "Configured endpoints")
+						@StatCard("Audit Logs", fmt.Sprintf("%d", data.TotalAuditLogs), "fas fa-history", "bg-green-100 dark:bg-green-900/30", "text-green-600 dark:text-green-400", "Authorization events")
+						@StatCard("Total Requests", fmt.Sprintf("%d", data.TotalRequests), "fas fa-tachometer-alt", "bg-purple-100 dark:bg-purple-900/30", "text-purple-600 dark:text-purple-400", "API calls tracked")
+						@StatCard("Avg Response Time", fmt.Sprintf("%.2f ms", data.AverageResponseTime), "fas fa-clock", "bg-red-100 dark:bg-red-900/30", "text-red-600 dark:text-red-400", "Performance metric")
+					</div>
+					<!-- Features & Management Section -->
+					<div class="mb-8">
+						<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Features & Management</h3>
+						<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+							@FeatureCard("API Analytics", "Track API usage, performance metrics, and see who called specific endpoints. View top endpoints, slowest endpoints, and error rates.", "fas fa-chart-bar", "bg-blue-100 dark:bg-blue-900/30", "text-blue-600 dark:text-blue-400", "/admin-ui/api_analytics", "View Analytics")
+							@FeatureCard("Route Metadata", "Configure and manage authorized routes. View endpoint permissions, allowed roles, and manage API versioning.", "fas fa-route", "bg-green-100 dark:bg-green-900/30", "text-green-600 dark:text-green-400", "/admin-ui/route_metadata", "Manage Routes")
+							@FeatureCard("Role Management", "View and manage user roles. Assign roles to users, create new roles, and manage role hierarchies.", "fas fa-user-tag", "bg-purple-100 dark:bg-purple-900/30", "text-purple-600 dark:text-purple-400", "/admin-ui/roles", "Manage Roles")
+							@FeatureCard("RBAC Policies", "Configure Casbin RBAC policies through configuration files. Define role permissions and access control rules.", "fas fa-lock", "bg-indigo-100 dark:bg-indigo-900/30", "text-indigo-600 dark:text-indigo-400", "/admin-ui/policies", "View Documentation")
+							@FeatureCard("Audit Logs", "View comprehensive authorization decision history. Track access attempts, denials, and security events.", "fas fa-shield-alt", "bg-orange-100 dark:bg-orange-900/30", "text-orange-600 dark:text-orange-400", "/admin-ui/audit_logs", "View Logs")
+							<div class="framework-card p-6">
+								<div class="flex items-start justify-between mb-4">
+									<div class="flex-1">
+										<h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Admin Auth</h4>
+										<p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+											Manage admin credentials and authentication settings through environment variables in .env file.
+										</p>
+									</div>
+									<div class="flex items-center justify-center w-10 h-10 bg-pink-100 dark:bg-pink-900/30 rounded-lg">
+										<i class="fas fa-user-shield text-pink-600 dark:text-pink-400"></i>
+									</div>
+								</div>
+								<div class="text-sm text-gray-500 dark:text-gray-500 italic">
+									Configure via .env file
+								</div>
+							</div>
+						</div>
+					</div>
+					<!-- Quick Actions Bar -->
+					<div class="mb-8">
+						<h3 class="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">Quick Actions</h3>
+						<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+							<div class="flex flex-wrap gap-4">
+								<a href="/admin-ui/api_analytics" class="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+									<i class="fas fa-chart-line mr-2"></i>
+									View Analytics
+								</a>
+								<a href="/admin-ui/route_metadata" class="inline-flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition">
+									<i class="fas fa-cog mr-2"></i>
+									Manage Routes
+								</a>
+								<a href="/admin-ui/roles" class="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition">
+									<i class="fas fa-users-cog mr-2"></i>
+									Manage Roles
+								</a>
+								<a href="/admin-ui/audit_logs" class="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition">
+									<i class="fas fa-history mr-2"></i>
+									View Audit Logs
+								</a>
+							</div>
+						</div>
+					</div>
+					<!-- Core Features Information -->
+					<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+						<!-- Authorization System -->
+						<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+							<h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+								<i class="fas fa-shield-alt text-blue-600 dark:text-blue-400 mr-2"></i>
+								Authorization System
+							</h4>
+							<ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+								<li class="flex items-start">
+									<i class="fas fa-check text-green-600 dark:text-green-400 mr-2 mt-1"></i>
+									<span>Role-Based Access Control (RBAC) via Casbin</span>
+								</li>
+								<li class="flex items-start">
+									<i class="fas fa-check text-green-600 dark:text-green-400 mr-2 mt-1"></i>
+									<span>JWT Authentication with token validation</span>
+								</li>
+								<li class="flex items-start">
+									<i class="fas fa-check text-green-600 dark:text-green-400 mr-2 mt-1"></i>
+									<span>Public & Protected Routes with fine-grained control</span>
+								</li>
+								<li class="flex items-start">
+									<i class="fas fa-check text-green-600 dark:text-green-400 mr-2 mt-1"></i>
+									<span>Ownership checks for resource-level access</span>
+								</li>
+							</ul>
+						</div>
+						<!-- Monitoring & Audit -->
+						<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+							<h4 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center">
+								<i class="fas fa-chart-line text-green-600 dark:text-green-400 mr-2"></i>
+								Monitoring & Audit
+							</h4>
+							<ul class="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+								<li class="flex items-start">
+									<i class="fas fa-check text-green-600 dark:text-green-400 mr-2 mt-1"></i>
+									<span>Authorization audit logging with batch processing</span>
+								</li>
+								<li class="flex items-start">
+									<i class="fas fa-check text-green-600 dark:text-green-400 mr-2 mt-1"></i>
+									<span>API usage analytics and performance tracking</span>
+								</li>
+								<li class="flex items-start">
+									<i class="fas fa-check text-green-600 dark:text-green-400 mr-2 mt-1"></i>
+									<span>Track who called specific endpoints</span>
+								</li>
+								<li class="flex items-start">
+									<i class="fas fa-check text-green-600 dark:text-green-400 mr-2 mt-1"></i>
+									<span>Deprecated route detection with warnings</span>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</main>
+				@Footer()
+			</div>
+		</div>
+	}
+}

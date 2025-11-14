@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  authz-framework:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: AZF-authz-framework-dev
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      ENVIRONMENT: development
+      JWT_SECRET: dev-secret-key-not-for-production
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: admin123
+      CASBIN_MODEL_FILE: /app/config/casbin_rbac_model.conf
+      CASBIN_POLICY_FILE: /app/config/casbin_rbac_policy.csv
+      LOG_LEVEL: debug
+    volumes:
+      - authz-data-dev:/app/data
+      - authz-logs-dev:/app/logs
+    restart: unless-stopped
+    networks:
+      - authz-network-dev
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost:8080/admin-ui/login",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  authz-data-dev:
+    driver: local
+  authz-logs-dev:
+    driver: local
+
+networks:
+  authz-network-dev:
+    driver: bridge

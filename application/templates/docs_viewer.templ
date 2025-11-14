@@ -1,0 +1,412 @@
+package templates
+
+import "github.com/aruncs31s/azf/application/dto"
+
+script renderMarkdown(content string) {
+	const markdownContent = content;
+	marked.setOptions({ breaks: true, gfm: true, headerIds: true });
+	const htmlContent = marked.parse(markdownContent);
+	const cleanHtml = DOMPurify.sanitize(htmlContent);
+	document.getElementById('markdown-content').innerHTML = cleanHtml;
+	document.querySelectorAll('pre code').forEach(block => hljs.highlightElement(block));
+}
+
+templ DocsViewer(title string, content string, docTree []dto.DocItem, currentPath string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ title } - Documentation</title>
+			<script src="https://cdn.jsdelivr.net/npm/marked@11.1.1/marked.min.js"></script>
+			<script src="https://cdn.jsdelivr.net/npm/dompurify@3.0.6/dist/purify.min.js"></script>
+			<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-light.min.css"/>
+			<style>
+				* {
+					margin: 0;
+					padding: 0;
+					box-sizing: border-box;
+				}
+
+				html, body {
+					height: 100%;
+					overflow: hidden;
+				}
+
+				body {
+					font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+					background-color: #f5f5f5;
+					color: #333;
+				}
+
+				.docs-container {
+					display: flex;
+					height: 100vh;
+				}
+
+				.sidebar {
+					width: 280px;
+					background-color: #ffffff;
+					border-right: 1px solid #e0e0e0;
+					padding: 20px;
+					overflow-y: auto;
+					box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+				}
+
+				.sidebar h2 {
+					font-size: 13px;
+					font-weight: 700;
+					text-transform: uppercase;
+					color: #666;
+					margin-bottom: 20px;
+					padding: 0 12px;
+					letter-spacing: 0.5px;
+				}
+
+				.sidebar-tree {
+					list-style: none;
+				}
+
+				.tree-item {
+					margin-bottom: 6px;
+				}
+
+				.tree-link {
+					display: block;
+					padding: 10px 12px;
+					color: #333;
+					text-decoration: none;
+					border-radius: 4px;
+					font-size: 13px;
+					transition: all 0.2s ease;
+					cursor: pointer;
+					word-break: break-word;
+				}
+
+				.tree-link:hover {
+					background-color: #f0f0f0;
+					color: #0066cc;
+				}
+
+				.tree-link.active {
+					background-color: #e3f2fd;
+					color: #0066cc;
+					font-weight: 600;
+					border-left: 3px solid #0066cc;
+					padding-left: 9px;
+				}
+
+				.tree-folder {
+					margin-top: 16px;
+					margin-bottom: 8px;
+				}
+
+				.tree-folder-title {
+					padding: 10px 12px;
+					font-weight: 700;
+					font-size: 11px;
+					color: #666;
+					text-transform: uppercase;
+					cursor: pointer;
+					transition: color 0.2s ease;
+					user-select: none;
+					letter-spacing: 0.5px;
+				}
+
+				.tree-folder-title:hover {
+					color: #0066cc;
+				}
+
+				.tree-folder-items {
+					margin-left: 0;
+					padding-left: 12px;
+					border-left: 2px solid #e0e0e0;
+					list-style: none;
+					margin-top: 4px;
+				}
+
+				.main-content {
+					flex: 1;
+					display: flex;
+					flex-direction: column;
+					overflow: hidden;
+				}
+
+				.content-header {
+					padding: 30px 40px 20px 40px;
+					background-color: #ffffff;
+					border-bottom: 2px solid #f0f0f0;
+					flex-shrink: 0;
+				}
+
+				.content-title {
+					font-size: 2em;
+					font-weight: 700;
+					color: #1a1a1a;
+					margin: 0;
+				}
+
+				.markdown-wrapper {
+					flex: 1;
+					overflow-y: auto;
+					padding: 40px;
+				}
+
+				.markdown-content {
+					background-color: transparent;
+					line-height: 1.8;
+					color: #333;
+				}
+
+				.markdown-content h1 {
+					font-size: 2em;
+					font-weight: 700;
+					margin: 32px 0 16px 0;
+					color: #1a1a1a;
+					border-bottom: 3px solid #0066cc;
+					padding-bottom: 12px;
+				}
+
+				.markdown-content h1:first-child {
+					margin-top: 0;
+				}
+
+				.markdown-content h2 {
+					font-size: 1.75em;
+					font-weight: 700;
+					margin: 28px 0 12px 0;
+					color: #1a1a1a;
+				}
+
+				.markdown-content h3 {
+					font-size: 1.5em;
+					font-weight: 600;
+					margin: 24px 0 10px 0;
+					color: #333;
+				}
+
+				.markdown-content h4 {
+					font-size: 1.25em;
+					font-weight: 600;
+					margin: 16px 0 8px 0;
+					color: #333;
+				}
+
+				.markdown-content h5,
+				.markdown-content h6 {
+					font-size: 1.1em;
+					font-weight: 600;
+					margin: 12px 0 8px 0;
+					color: #666;
+				}
+
+				.markdown-content p {
+					margin: 12px 0;
+					line-height: 1.8;
+				}
+
+				.markdown-content a {
+					color: #0066cc;
+					text-decoration: none;
+					transition: color 0.2s ease;
+				}
+
+				.markdown-content a:hover {
+					color: #0052a3;
+					text-decoration: underline;
+				}
+
+				.markdown-content strong {
+					font-weight: 700;
+				}
+
+				.markdown-content em {
+					font-style: italic;
+				}
+
+				.markdown-content code {
+					background-color: #f5f5f5;
+					padding: 2px 6px;
+					border-radius: 3px;
+					font-family: "Consolas", "Monaco", "Courier New", monospace;
+					font-size: 0.9em;
+					color: #c41d7f;
+					border: 1px solid #e0e0e0;
+				}
+
+				.markdown-content pre {
+					background-color: #f5f5f5;
+					border: 1px solid #e0e0e0;
+					border-radius: 4px;
+					padding: 16px;
+					overflow-x: auto;
+					margin: 16px 0;
+				}
+
+				.markdown-content pre code {
+					background-color: transparent;
+					padding: 0;
+					color: #333;
+					border: none;
+					font-size: 0.95em;
+					line-height: 1.5;
+				}
+
+				.markdown-content blockquote {
+					border-left: 4px solid #0066cc;
+					margin: 16px 0;
+					padding: 12px 16px;
+					background-color: #f9f9f9;
+					color: #666;
+					font-style: italic;
+				}
+
+				.markdown-content ul,
+				.markdown-content ol {
+					margin: 12px 0;
+					padding-left: 24px;
+				}
+
+				.markdown-content li {
+					margin: 6px 0;
+					line-height: 1.8;
+				}
+
+				.markdown-content table {
+					border-collapse: collapse;
+					width: 100%;
+					margin: 16px 0;
+					border: 1px solid #ddd;
+				}
+
+				.markdown-content table thead {
+					background-color: #f9f9f9;
+				}
+
+				.markdown-content table th {
+					border: 1px solid #ddd;
+					padding: 12px;
+					text-align: left;
+					font-weight: 700;
+					color: #333;
+				}
+
+				.markdown-content table td {
+					border: 1px solid #ddd;
+					padding: 12px;
+					color: #555;
+				}
+
+				.markdown-content tr:nth-child(even) {
+					background-color: #fafafa;
+				}
+
+				.markdown-content img {
+					max-width: 100%;
+					height: auto;
+					border-radius: 4px;
+					margin: 16px 0;
+					box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+				}
+
+				.markdown-content hr {
+					border: none;
+					border-top: 2px solid #e0e0e0;
+					margin: 32px 0;
+				}
+
+				.sidebar::-webkit-scrollbar,
+				.markdown-wrapper::-webkit-scrollbar {
+					width: 8px;
+				}
+
+				.sidebar::-webkit-scrollbar-track,
+				.markdown-wrapper::-webkit-scrollbar-track {
+					background: transparent;
+				}
+
+				.sidebar::-webkit-scrollbar-thumb,
+				.markdown-wrapper::-webkit-scrollbar-thumb {
+					background: #ccc;
+					border-radius: 4px;
+				}
+
+				.sidebar::-webkit-scrollbar-thumb:hover,
+				.markdown-wrapper::-webkit-scrollbar-thumb:hover {
+					background: #999;
+				}
+
+				@media (max-width: 768px) {
+					.docs-container {
+						flex-direction: column;
+					}
+
+					.sidebar {
+						width: 100%;
+						max-height: 35vh;
+						border-right: none;
+						border-bottom: 1px solid #e0e0e0;
+					}
+
+					.main-content {
+						flex: 1;
+					}
+
+					.content-header {
+						padding: 20px;
+					}
+
+					.markdown-wrapper {
+						padding: 20px;
+					}
+
+					.content-title {
+						font-size: 1.5em;
+					}
+				}
+			</style>
+		</head>
+		<body>
+			<div class="docs-container">
+				<aside class="sidebar">
+					<h2>📚 Documentation</h2>
+					<ul class="sidebar-tree">
+						@renderDocTree(docTree, currentPath)
+					</ul>
+				</aside>
+				<main class="main-content">
+					<div class="content-header">
+						<h1 class="content-title">{ title }</h1>
+					</div>
+					<div class="markdown-wrapper">
+						<div class="markdown-content" id="markdown-content"></div>
+					</div>
+				</main>
+			</div>
+			@renderMarkdown(content)
+		</body>
+	</html>
+}
+
+templ renderDocTree(items []dto.DocItem, currentPath string) {
+	for _, item := range items {
+		if item.IsFolder && len(item.Children) > 0 {
+			<li class="tree-item tree-folder">
+				<div class="tree-folder-title">📁 { item.Name }</div>
+				<ul class="tree-folder-items">
+					@renderDocTree(item.Children, currentPath)
+				</ul>
+			</li>
+		} else if !item.IsFolder {
+			<li class="tree-item">
+				<a
+					href={ templ.SafeURL("?path=" + item.Path) }
+					class={ "tree-link", templ.KV("active", currentPath == item.Path+".md") }
+				>
+					📄 { item.Name }
+				</a>
+			</li>
+		}
+	}
+}

@@ -1,0 +1,667 @@
+package templates
+
+templ LoginPage(theError string) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Admin Login - Permission Management</title>
+			<script src="https://cdn.tailwindcss.com"></script>
+			<script>
+				tailwind.config = {
+					darkMode: 'class',
+				}
+			</script>
+			<style>
+				body {
+					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+					min-height: 100vh;
+				}
+				.dark body {
+					background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+				}
+				.login-card {
+					background: rgba(255, 255, 255, 0.95);
+					backdrop-filter: blur(10px);
+				}
+				.dark .login-card {
+					background: rgba(31, 41, 55, 0.95);
+					backdrop-filter: blur(10px);
+				}
+				.login-btn:hover {
+					transform: translateY(-2px);
+					box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+				}
+				.input-focus:focus {
+					border-color: #667eea;
+					box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+				}
+				.dark .input-focus:focus {
+					border-color: #818cf8;
+					box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+				}
+				.dark .text-white {
+					color: #f3f4f6;
+				}
+				.dark .text-gray-200 {
+					color: #e5e7eb;
+				}
+				.dark .text-gray-600 {
+					color: #9ca3af;
+				}
+				.dark .text-gray-700 {
+					color: #d1d5db;
+				}
+				.dark .text-gray-800 {
+					color: #f3f4f6;
+				}
+				.dark .text-red-700 {
+					color: #fca5a5;
+				}
+				.dark .text-blue-600 {
+					color: #60a5fa;
+				}
+				.dark .text-green-700 {
+					color: #86efac;
+				}
+				.dark .bg-red-50 {
+					background-color: #7f1d1d;
+				}
+				.dark .bg-green-50 {
+					background-color: #166534;
+				}
+				.dark .border-red-500 {
+					border-color: #f87171;
+				}
+				.dark .border-green-500 {
+					border-color: #4ade80;
+				}
+				.dark input,
+				.dark select,
+				.dark textarea {
+					background-color: #1f2937;
+					color: #f3f4f6;
+					border-color: #4b5563;
+				}
+				.dark input:focus,
+				.dark select:focus,
+				.dark textarea:focus {
+					border-color: #818cf8;
+					box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+				}
+				.dark .bg-blue-600 {
+					background-color: #2563eb;
+				}
+				.dark .hover\:bg-blue-700:hover {
+					background-color: #1d4ed8;
+				}
+				.dark .hover\:text-blue-700:hover {
+					color: #60a5fa;
+				}
+				.dark .focus\:ring-blue-500:focus {
+					box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+				}
+			</style>
+			<script>
+				// Store JWT token from login response
+				function storeJWTToken(token) {
+					localStorage.setItem('jwt_token', token);
+				}
+
+				// Retrieve JWT token from localStorage
+				function getJWTToken() {
+					return localStorage.getItem('jwt_token');
+				}
+
+				// Clear JWT token from localStorage
+				function clearJWTToken() {
+					localStorage.removeItem('jwt_token');
+				}
+
+				// Make API request with JWT token
+				async function apiRequest(url, method = 'GET', body = null) {
+					const token = getJWTToken();
+					const headers = {
+						'Content-Type': 'application/json',
+					};
+
+					if (token) {
+						headers['Authorization'] = 'Bearer ' + token;
+					}
+
+					const options = {
+						method,
+						headers,
+					};
+
+					if (body) {
+						options.body = JSON.stringify(body);
+					}
+
+					return fetch(url, options);
+				}
+
+				// Validate JWT token is actually valid by testing it
+				async function isTokenValid() {
+					const token = getJWTToken();
+					if (!token) {
+						return false;
+					}
+
+					try {
+						// Attempt to use the token by making a test request
+						const response = await fetch('/admin-ui', {
+							method: 'GET',
+							headers: {
+								'Authorization': 'Bearer ' + token
+							}
+						});
+
+						// If we get a 401, token is invalid
+						if (response.status === 401) {
+							clearJWTToken();
+							return false;
+						}
+
+						return response.ok;
+					} catch (error) {
+						console.error('Token validation error:', error);
+						return false;
+					}
+				}
+
+				// Handle login form submission with JSON
+				async function handleLoginJSON(event) {
+					event.preventDefault();
+					const username = document.getElementById('username').value;
+					const password = document.getElementById('password').value;
+
+					if (!username || !password) {
+						alert('Please enter both username and password');
+						return;
+					}
+
+					try {
+						const response = await fetch('/admin-ui/login/json', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({ username, password }),
+						});
+
+						const data = await response.json();
+
+						// Check both response status and response data success flag
+						if (response.ok && data.success && data.jwt) {
+							storeJWTToken(data.jwt);
+							// Redirect to dashboard
+							window.location.href = '/admin-ui';
+						} else {
+							// Clear any invalid token on failed login
+							clearJWTToken();
+							alert('Login failed: ' + (data.message || 'Unknown error'));
+						}
+					} catch (error) {
+						console.error('Login error:', error);
+						clearJWTToken();
+						alert('An error occurred during login');
+					}
+				}
+</script>
+			<script>
+					// Initialize dark mode from localStorage
+					function initializeDarkMode() {
+						const isDarkMode = localStorage.getItem('darkMode') === 'true';
+						const htmlElement = document.documentElement;
+
+						if (isDarkMode) {
+							htmlElement.classList.add('dark');
+						} else {
+							htmlElement.classList.remove('dark');
+						}
+					}
+
+					// Check if user is already logged in (has valid JWT)
+					window.addEventListener('load', async function() {
+						const token = getJWTToken();
+						const currentPath = window.location.pathname;
+						// Check for both /admin-ui/login and /login paths
+						if (token && (currentPath === '/admin-ui/login' || currentPath === '/login')) {
+							// Validate token is actually valid before redirecting
+							const valid = await isTokenValid();
+							if (valid) {
+								// Redirect to dashboard if already logged in with valid token
+								window.location.href = '/admin-ui';
+							} else {
+								// Token is invalid or expired, clear it
+								clearJWTToken();
+							}
+						}
+					});
+
+					// Initialize immediately for faster response
+					initializeDarkMode();
+					document.addEventListener('DOMContentLoaded', initializeDarkMode);
+				</script>
+		</head>
+		<body class="flex items-center justify-center dark:bg-gray-950">
+			<div class="w-full max-w-md">
+				<!-- Header -->
+				<div class="text-center mb-8">
+					<h1 class="text-4xl font-bold text-white dark:text-gray-100 mb-2">Admin Panel</h1>
+					<p class="text-gray-200 dark:text-gray-400">Permission Management System</p>
+				</div>
+				<!-- Login Card -->
+				<div class="login-card rounded-2xl shadow-2xl p-8">
+					<!-- Title -->
+					<div class="mb-8">
+						<h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Welcome Back</h2>
+						<p class="text-gray-600 dark:text-gray-400">Sign in to your admin account</p>
+					</div>
+					<!-- Error Message -->
+					if theError != "" {
+						<div class="mb-6 p-4 bg-red-50 dark:bg-red-900 border-l-4 border-red-500 rounded">
+							<p class="text-red-700 dark:text-red-200 text-sm">{ theError }</p>
+						</div>
+					}
+					<!-- Login Form -->
+					<form onsubmit="handleLoginJSON(event)" class="space-y-5">
+						<!-- Username Input -->
+						<div>
+							<label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								Username
+							</label>
+							<input
+								type="text"
+								id="username"
+								name="username"
+								placeholder="Enter your username"
+								required
+								class="input-focus w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none transition duration-300 dark:bg-gray-800 dark:text-gray-100"
+							/>
+						</div>
+						<!-- Password Input -->
+						<div>
+							<label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								Password
+							</label>
+							<input
+								type="password"
+								id="password"
+								name="password"
+								placeholder="Enter your password"
+								required
+								class="input-focus w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none transition duration-300 dark:bg-gray-800 dark:text-gray-100"
+							/>
+						</div>
+						<!-- Remember Me -->
+						<div class="flex items-center">
+							<input
+								type="checkbox"
+								id="remember"
+								name="remember"
+								class="w-4 h-4 text-blue-600 border-gray-300 dark:border-gray-600 rounded focus:ring-blue-500"
+							/>
+							<label for="remember" class="ml-2 text-sm text-gray-600 dark:text-gray-400">
+								Keep me logged in
+							</label>
+						</div>
+						<!-- Login Button -->
+						<button
+							type="submit"
+							class="login-btn w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out mt-6"
+						>
+							Sign In
+						</button>
+					</form>
+					<!-- Divider -->
+					<div class="my-6 flex items-center">
+						<div class="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+						<span class="px-2 text-sm text-gray-500 dark:text-gray-400">or</span>
+						<div class="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+					</div>
+					<!-- Help Text -->
+					<p class="text-center text-sm text-gray-600 dark:text-gray-400">
+						Having trouble?
+						<a href="#" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">Contact Support</a>
+					</p>
+				</div>
+				<!-- Footer -->
+				<div class="mt-8 text-center text-gray-300 dark:text-gray-500 text-sm">
+					<p>© 2024 Admin Panel. All rights reserved.</p>
+				</div>
+			</div>
+		</body>
+	</html>
+}
+
+templ LoginPageWithMessage(message string, isError bool) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Admin Login - Permission Management</title>
+			<script src="https://cdn.tailwindcss.com"></script>
+			<script>
+				tailwind.config = {
+					darkMode: 'class',
+				}
+			</script>
+			<style>
+				body {
+					background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+					min-height: 100vh;
+				}
+				.dark body {
+					background: linear-gradient(135deg, #1e1b4b 0%, #2e1065 100%);
+				}
+				.login-card {
+					background: rgba(255, 255, 255, 0.95);
+					backdrop-filter: blur(10px);
+				}
+				.dark .login-card {
+					background: rgba(31, 41, 55, 0.95);
+					backdrop-filter: blur(10px);
+				}
+				.login-btn:hover {
+					transform: translateY(-2px);
+					box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+				}
+				.input-focus:focus {
+					border-color: #667eea;
+					box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+				}
+				.dark .input-focus:focus {
+					border-color: #818cf8;
+					box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+				}
+				.dark .text-white {
+					color: #f3f4f6;
+				}
+				.dark .text-gray-200 {
+					color: #e5e7eb;
+				}
+				.dark .text-gray-600 {
+					color: #9ca3af;
+				}
+				.dark .text-gray-700 {
+					color: #d1d5db;
+				}
+				.dark .text-gray-800 {
+					color: #f3f4f6;
+				}
+				.dark .text-red-700 {
+					color: #fca5a5;
+				}
+				.dark .text-blue-600 {
+					color: #60a5fa;
+				}
+				.dark .text-green-700 {
+					color: #86efac;
+				}
+				.dark .bg-red-50 {
+					background-color: #7f1d1d;
+				}
+				.dark .bg-green-50 {
+					background-color: #166534;
+				}
+				.dark .border-red-500 {
+					border-color: #f87171;
+				}
+				.dark .border-green-500 {
+					border-color: #4ade80;
+				}
+				.dark input,
+				.dark select,
+				.dark textarea {
+					background-color: #1f2937;
+					color: #f3f4f6;
+					border-color: #4b5563;
+				}
+				.dark input:focus,
+				.dark select:focus,
+				.dark textarea:focus {
+					border-color: #818cf8;
+					box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.1);
+				}
+				.dark .bg-blue-600 {
+					background-color: #2563eb;
+				}
+				.dark .hover\:bg-blue-700:hover {
+					background-color: #1d4ed8;
+				}
+				.dark .hover\:text-blue-700:hover {
+					color: #60a5fa;
+				}
+				.dark .focus\:ring-blue-500:focus {
+					box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+				}
+			</style>
+			<script>
+				// Store JWT token from login response
+				function storeJWTToken(token) {
+					localStorage.setItem('jwt_token', token);
+				}
+
+				// Retrieve JWT token from localStorage
+				function getJWTToken() {
+					return localStorage.getItem('jwt_token');
+				}
+
+				// Clear JWT token from localStorage
+				function clearJWTToken() {
+					localStorage.removeItem('jwt_token');
+				}
+
+				// Make API request with JWT token
+				async function apiRequest(url, method = 'GET', body = null) {
+					const token = getJWTToken();
+					const headers = {
+						'Content-Type': 'application/json',
+					};
+
+					if (token) {
+						headers['Authorization'] = 'Bearer ' + token;
+					}
+
+					const options = {
+						method,
+						headers,
+					};
+
+					if (body) {
+						options.body = JSON.stringify(body);
+					}
+
+					return fetch(url, options);
+				}
+
+				// Validate JWT token is actually valid by testing it
+				async function isTokenValid() {
+					const token = getJWTToken();
+					if (!token) {
+						return false;
+					}
+
+					try {
+						// Attempt to use the token by making a test request
+						const response = await fetch('/admin-ui', {
+							method: 'GET',
+							headers: {
+								'Authorization': 'Bearer ' + token
+							}
+						});
+
+						// If we get a 401, token is invalid
+						if (response.status === 401) {
+							clearJWTToken();
+							return false;
+						}
+
+						return response.ok;
+					} catch (error) {
+						console.error('Token validation error:', error);
+						return false;
+					}
+				}
+
+				// Handle login form submission with JSON
+				async function handleLoginJSON(event) {
+					event.preventDefault();
+					const username = document.getElementById('username').value;
+					const password = document.getElementById('password').value;
+
+					if (!username || !password) {
+						alert('Please enter both username and password');
+						return;
+					}
+
+					try {
+						const response = await fetch('/admin-ui/login/json', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({ username, password }),
+						});
+
+						const data = await response.json();
+
+						// Check both response status and response data success flag
+						if (response.ok && data.success && data.jwt) {
+							storeJWTToken(data.jwt);
+							// Redirect to dashboard
+							window.location.href = '/admin-ui';
+						} else {
+							// Clear any invalid token on failed login
+							clearJWTToken();
+							alert('Login failed: ' + (data.message || 'Unknown error'));
+						}
+					} catch (error) {
+						console.error('Login error:', error);
+						clearJWTToken();
+						alert('An error occurred during login');
+					}
+				}
+
+				<script>
+					// Initialize dark mode from localStorage
+					function initializeDarkMode() {
+						const isDarkMode = localStorage.getItem('darkMode') === 'true';
+						const htmlElement = document.documentElement;
+
+						if (isDarkMode) {
+							htmlElement.classList.add('dark');
+						} else {
+							htmlElement.classList.remove('dark');
+						}
+					}
+
+					// Check if user is already logged in (has valid JWT)
+					window.addEventListener('load', async function() {
+						const token = getJWTToken();
+						const currentPath = window.location.pathname;
+						// Check for both /admin-ui/login and /login paths
+						if (token && (currentPath === '/admin-ui/login' || currentPath === '/login')) {
+							// Validate token is actually valid before redirecting
+							const valid = await isTokenValid();
+							if (valid) {
+								// Redirect to dashboard if already logged in with valid token
+								window.location.href = '/admin-ui';
+							} else {
+								// Token is invalid or expired, clear it
+								clearJWTToken();
+							}
+						}
+					});
+
+					// Initialize immediately for faster response
+					initializeDarkMode();
+					document.addEventListener('DOMContentLoaded', initializeDarkMode);
+				</script>
+		</head>
+		<body class="flex items-center justify-center dark:bg-gray-950">
+			<div class="w-full max-w-md">
+				<!-- Header -->
+				<div class="text-center mb-8">
+					<h1 class="text-4xl font-bold text-white dark:text-gray-100 mb-2">Admin Panel</h1>
+					<p class="text-gray-200 dark:text-gray-400">Permission Management System</p>
+				</div>
+				<!-- Login Card -->
+				<div class="login-card rounded-2xl shadow-2xl p-8">
+					<!-- Title -->
+					<div class="mb-8">
+						<h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Welcome Back</h2>
+						<p class="text-gray-600 dark:text-gray-400">Sign in to your admin account</p>
+					</div>
+					<!-- Status Message -->
+					if isError {
+						<div class="mb-6 p-4 bg-red-50 dark:bg-red-900 border-l-4 border-red-500 rounded">
+							<p class="text-red-700 dark:text-red-200 text-sm">{ message }</p>
+						</div>
+					} else {
+						<div class="mb-6 p-4 bg-green-50 dark:bg-green-900 border-l-4 border-green-500 rounded">
+							<p class="text-green-700 dark:text-green-200 text-sm">{ message }</p>
+						</div>
+					}
+					<!-- Login Form -->
+					<form onsubmit="handleLoginJSON(event)" class="space-y-5">
+						<!-- Username Input -->
+						<div>
+							<label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								Username
+							</label>
+							<input
+								type="text"
+								id="username"
+								name="username"
+								placeholder="Enter your username"
+								required
+								class="input-focus w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none transition duration-300 dark:bg-gray-800 dark:text-gray-100"
+							/>
+						</div>
+						<!-- Password Input -->
+						<div>
+							<label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+								Password
+							</label>
+							<input
+								type="password"
+								id="password"
+								name="password"
+								placeholder="Enter your password"
+								required
+								class="input-focus w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none transition duration-300 dark:bg-gray-800 dark:text-gray-100"
+							/>
+						</div>
+						<!-- Login Button -->
+						<button
+							type="submit"
+							class="login-btn w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out mt-6"
+						>
+							Sign In
+						</button>
+					</form>
+					<!-- Divider -->
+					<div class="my-6 flex items-center">
+						<div class="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+						<span class="px-2 text-sm text-gray-500 dark:text-gray-400">or</span>
+						<div class="flex-1 border-t border-gray-300 dark:border-gray-600"></div>
+					</div>
+					<!-- Help Text -->
+					<p class="text-center text-sm text-gray-600 dark:text-gray-400">
+						Having trouble?
+						<a href="#" class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium">Contact Support</a>
+					</p>
+				</div>
+				<!-- Footer -->
+				<div class="mt-8 text-center text-gray-300 dark:text-gray-500 text-sm">
+					<p>© 2024 Admin Panel. All rights reserved.</p>
+				</div>
+			</div>
+		</body>
+	</html>
+}

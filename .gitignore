@@ -1,0 +1,14 @@
+# Ignore markdown files in tmp directory only
+tmp/*.md
+
+# Ignore compiled binaries
+bin/api
+tmp/main
+cmd/test_server
+
+# Ignore log files
+logs/
+**/logs/
+*.log
+
+docs

@@ -1,0 +1,203 @@
+//go:generate templ generate
+
+package templates
+
+templ DarkModeToggle() {
+	<button
+		id="dark-mode-toggle"
+		onclick="toggleDarkMode()"
+		class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors"
+		title="Toggle dark mode"
+	>
+		<i id="dark-mode-icon" class="fas fa-moon"></i>
+	</button>
+
+	<script>
+		// Initialize dark mode from localStorage
+		function initializeDarkMode() {
+			const isDarkMode = localStorage.getItem('darkMode') === 'true';
+			const htmlElement = document.documentElement;
+
+			if (isDarkMode) {
+				htmlElement.classList.add('dark');
+				updateDarkModeIcon(true);
+			} else {
+				htmlElement.classList.remove('dark');
+				updateDarkModeIcon(false);
+			}
+		}
+
+		// Toggle dark mode
+		function toggleDarkMode() {
+			const htmlElement = document.documentElement;
+			const isDarkMode = htmlElement.classList.contains('dark');
+
+			if (isDarkMode) {
+				htmlElement.classList.remove('dark');
+				localStorage.setItem('darkMode', 'false');
+				updateDarkModeIcon(false);
+			} else {
+				htmlElement.classList.add('dark');
+				localStorage.setItem('darkMode', 'true');
+				updateDarkModeIcon(true);
+			}
+		}
+
+		// Update icon based on dark mode state
+		function updateDarkModeIcon(isDarkMode) {
+			const icon = document.getElementById('dark-mode-icon');
+			if (icon) {
+				if (isDarkMode) {
+					icon.classList.remove('fa-moon');
+					icon.classList.add('fa-sun');
+				} else {
+					icon.classList.remove('fa-sun');
+					icon.classList.add('fa-moon');
+				}
+			}
+		}
+
+		// Listen for system dark mode preference changes
+		if (window.matchMedia) {
+			window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+				if (localStorage.getItem('darkMode') === null) {
+					const htmlElement = document.documentElement;
+					if (e.matches) {
+						htmlElement.classList.add('dark');
+						updateDarkModeIcon(true);
+					} else {
+						htmlElement.classList.remove('dark');
+						updateDarkModeIcon(false);
+					}
+				}
+			});
+		}
+
+		// Initialize on page load
+		document.addEventListener('DOMContentLoaded', initializeDarkMode);
+
+		// Also initialize immediately for faster response
+		initializeDarkMode();
+	</script>
+}
+
+templ DarkModeStyles() {
+	<script>
+		// Configure Tailwind dark mode
+		tailwind.config = {
+			darkMode: 'class',
+		}
+	</script>
+
+	<style>
+		/* Dark mode color scheme */
+		@media (prefers-color-scheme: dark) {
+			:root {
+				color-scheme: dark;
+			}
+		}
+
+		.dark {
+			color-scheme: dark;
+		}
+
+		.dark body {
+			@apply bg-gray-950 text-gray-100;
+		}
+
+		.dark nav {
+			@apply bg-gray-900 border-gray-700;
+		}
+
+		.dark .bg-white {
+			@apply bg-gray-800;
+		}
+
+		.dark .bg-gray-50 {
+			@apply bg-gray-900;
+		}
+
+		.dark .bg-gray-100 {
+			@apply bg-gray-800;
+		}
+
+		.dark .text-gray-800 {
+			@apply text-gray-100;
+		}
+
+		.dark .text-gray-600 {
+			@apply text-gray-400;
+		}
+
+		.dark .text-gray-900 {
+			@apply text-gray-50;
+		}
+
+		.dark .border-gray-200 {
+			@apply border-gray-700;
+		}
+
+		.dark .border-gray-300 {
+			@apply border-gray-600;
+		}
+
+		.dark .divide-gray-200 {
+			@apply divide-gray-700;
+		}
+
+		/* Dark mode for specific elements */
+		.dark input,
+		.dark select,
+		.dark textarea {
+			@apply bg-gray-800 text-gray-100 border-gray-600;
+		}
+
+		.dark input:focus,
+		.dark select:focus,
+		.dark textarea:focus {
+			@apply border-blue-500 ring-blue-500;
+		}
+
+		.dark table {
+			@apply divide-gray-700;
+		}
+
+		.dark thead {
+			@apply bg-gray-800;
+		}
+
+		.dark tbody {
+			@apply divide-gray-700;
+		}
+
+		.dark tbody tr:hover {
+			@apply bg-gray-800;
+		}
+
+		/* Highcharts dark mode adjustments */
+		.dark .highcharts-container {
+			filter: invert(0.9) hue-rotate(180deg);
+		}
+
+		.dark .highcharts-label {
+			@apply text-gray-300;
+		}
+
+		/* Cards in dark mode */
+		.dark .shadow {
+			@apply shadow-gray-900/50;
+		}
+
+		.dark .bg-gradient-to-br {
+			@apply from-gray-800 to-gray-900;
+		}
+
+		.dark .login-card {
+			@apply bg-gray-800;
+		}
+
+		.dark .input-focus:focus {
+			@apply border-blue-400 ring-2 ring-blue-400/20;
+		}
+	</style>
+}

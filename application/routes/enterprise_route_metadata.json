@@ -1,0 +1,100 @@
+{
+  "routes": [
+    {
+      "path": "/admin-ui/login",
+      "method": "GET",
+      "allowed_roles": [],
+      "description": "Login page",
+      "api_version": "v1",
+      "tags": ["admin", "authentication"],
+      "is_public": true,
+      "ownership_check": false,
+      "audit_required": false,
+      "deprecated": false
+    },
+    {
+      "path": "/admin-ui/login",
+      "method": "POST",
+      "allowed_roles": [],
+      "description": "Admin login",
+      "api_version": "v1",
+      "tags": ["admin", "authentication"],
+      "is_public": true,
+      "ownership_check": false,
+      "audit_required": true,
+      "deprecated": false
+    },
+    {
+      "path": "/admin-ui/login/json",
+      "method": "POST",
+      "allowed_roles": [],
+      "description": "Admin login with JSON response",
+      "api_version": "v1",
+      "tags": ["admin", "authentication"],
+      "is_public": true,
+      "ownership_check": false,
+      "audit_required": true,
+      "deprecated": false
+    },
+    {
+      "path": "/admin-ui/logout",
+      "method": "GET",
+      "allowed_roles": [],
+      "description": "Admin logout",
+      "api_version": "v1",
+      "tags": ["admin", "authentication"],
+      "is_public": true,
+      "ownership_check": false,
+      "audit_required": true,
+      "deprecated": false
+    },
+    {
+      "path": "/api/admin/users",
+      "method": "GET",
+      "allowed_roles": ["admin"],
+      "description": "Admin users endpoint - test route",
+      "api_version": "v1",
+      "tags": ["admin", "test"],
+      "is_public": false,
+      "ownership_check": false,
+      "audit_required": true,
+      "deprecated": false
+    },
+    {
+      "path": "/api/staff/profile",
+      "method": "GET",
+      "allowed_roles": ["staff"],
+      "description": "Staff profile endpoint - test route",
+      "api_version": "v1",
+      "tags": ["staff", "test"],
+      "is_public": false,
+      "ownership_check": false,
+      "audit_required": true,
+      "deprecated": false
+    },
+    {
+      "path": "/api/public/data",
+      "method": "GET",
+      "allowed_roles": ["user"],
+      "description": "Public data endpoint - test route",
+      "api_version": "v1",
+      "tags": ["public", "test"],
+      "is_public": false,
+      "ownership_check": false,
+      "audit_required": true,
+      "deprecated": false
+    },
+    {
+      "path": "/api/user/dashboard",
+      "method": "GET",
+      "allowed_roles": ["user"],
+      "description": "User dashboard endpoint - test route",
+      "api_version": "v1",
+      "tags": ["user", "test"],
+      "is_public": false,
+      "ownership_check": false,
+      "audit_required": true,
+      "deprecated": false
+    }
+  ]
+}

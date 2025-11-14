@@ -1,0 +1,555 @@
+//go:generate templ generate
+
+package templates
+
+import (
+	"fmt"
+	"github.com/aruncs31s/azf/infrastructure/enterprise"
+	"strings"
+)
+
+type RouteMetadataManagementPageData struct {
+	Routes []*enterprise.RouteMetadata
+}
+
+templ RouteMetadataManagementPage(data RouteMetadataManagementPageData) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Route Metadata Management - Admin Dashboard</title>
+			<script src="https://cdn.tailwindcss.com"></script>
+			<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+			@DarkModeStyles()
+			<script>
+				// Toggle route details
+				function toggleRouteDetails(routeId) {
+					const details = document.getElementById('details-' + routeId);
+					const icon = document.getElementById('icon-' + routeId);
+					if (details.classList.contains('hidden')) {
+						details.classList.remove('hidden');
+						icon.classList.add('rotate-90');
+					} else {
+						details.classList.add('hidden');
+						icon.classList.remove('rotate-90');
+					}
+				}
+
+				// Edit route modal
+				let editingRouteIndex = -1; // Track which route is being edited
+
+				function openEditModal(routeIndex) {
+					editingRouteIndex = routeIndex;
+					const modal = document.getElementById('edit-modal');
+					modal.classList.remove('hidden');
+					// Populate form with route data
+					if (routeIndex >= 0) {
+						const route = @data.Routes[routeIndex];
+						document.getElementById('edit-path').value = route.Path;
+						document.getElementById('edit-method').value = route.Method;
+						document.getElementById('edit-description').value = route.Description;
+						document.getElementById('edit-roles').value = route.AllowedRoles.join(', ');
+						document.getElementById('edit-api-version').value = route.APIVersion;
+						document.getElementById('edit-tags').value = route.Tags.join(', ');
+						document.getElementById('edit-public').checked = route.IsPublic;
+						document.getElementById('edit-ownership-check').checked = route.OwnershipCheck;
+						document.getElementById('edit-audit-required').checked = route.AuditRequired;
+						document.getElementById('edit-deprecated').checked = route.Deprecated;
+						document.getElementById('modal-title').textContent = 'Edit Route';
+					} else {
+						// New route - clear form
+						document.getElementById('edit-path').value = '';
+						document.getElementById('edit-method').value = 'GET';
+						document.getElementById('edit-description').value = '';
+						document.getElementById('edit-roles').value = '';
+						document.getElementById('edit-api-version').value = 'v1';
+						document.getElementById('edit-tags').value = '';
+						document.getElementById('edit-public').checked = false;
+						document.getElementById('edit-ownership-check').checked = false;
+						document.getElementById('edit-audit-required').checked = false;
+						document.getElementById('edit-deprecated').checked = false;
+						document.getElementById('modal-title').textContent = 'Add New Route';
+					}
+				}
+
+				function closeEditModal() {
+					document.getElementById('edit-modal').classList.add('hidden');
+					editingRouteIndex = -1;
+				}
+
+				// Save route changes
+				async function saveRoute() {
+					const formData = new FormData(document.getElementById('edit-form'));
+					const routeData = {
+						path: formData.get('path'),
+						method: formData.get('method'),
+						description: formData.get('description'),
+						allowed_roles: formData.get('roles').split(',').map(r => r.trim()).filter(r => r),
+						api_version: formData.get('api_version'),
+						tags: formData.get('tags').split(',').map(t => t.trim()).filter(t => t),
+						is_public: formData.get('public') === 'on',
+						ownership_check: formData.get('ownership_check') === 'on',
+						audit_required: formData.get('audit_required') === 'on',
+						deprecated: formData.get('deprecated') === 'on'
+					};
+
+					// Validate required fields
+					if (!routeData.path) {
+						alert('Path is required');
+						return;
+					}
+					if (!routeData.method) {
+						alert('Method is required');
+						return;
+					}
+					if (!routeData.api_version) {
+						alert('API Version is required');
+						return;
+					}
+
+					try {
+						const response = await fetch('/admin-ui/route_metadata', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({ routes: editingRouteIndex >= 0 ? 
+								@data.Routes.map((r, i) => i === editingRouteIndex ? routeData : {
+									path: r.Path,
+									method: r.Method,
+									description: r.Description,
+									allowed_roles: r.AllowedRoles,
+									api_version: r.APIVersion,
+									tags: r.Tags,
+									is_public: r.IsPublic,
+									ownership_check: r.OwnershipCheck,
+									audit_required: r.AuditRequired,
+									deprecated: r.Deprecated
+								}) : [...@data.Routes.map(r => ({
+									path: r.Path,
+									method: r.Method,
+									description: r.Description,
+									allowed_roles: r.AllowedRoles,
+									api_version: r.APIVersion,
+									tags: r.Tags,
+									is_public: r.IsPublic,
+									ownership_check: r.OwnershipCheck,
+									audit_required: r.AuditRequired,
+									deprecated: r.Deprecated
+								})), routeData]
+							})
+						});
+
+						if (response.ok) {
+							alert('Route saved successfully! Refreshing page...');
+							closeEditModal();
+							window.location.reload();
+						} else {
+							const error = await response.json();
+							alert('Error saving route: ' + (error.error || 'Unknown error'));
+						}
+					} catch (error) {
+						alert('Error saving route: ' + error.message);
+					}
+				}
+
+				// Delete route
+				async function deleteRoute(methodText, pathText) {
+					if (!confirm(`Are you sure you want to delete the route: ${methodText} ${pathText}?`)) {
+						return;
+					}
+
+					try {
+						const response = await fetch('/admin-ui/route_metadata/delete', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({
+								method: methodText,
+								path: pathText
+							})
+						});
+
+						if (response.ok) {
+							alert('Route deleted successfully! Refreshing page...');
+							window.location.reload();
+						} else {
+							const error = await response.json();
+							alert('Error deleting route: ' + (error.error || 'Unknown error'));
+						}
+					} catch (error) {
+						alert('Error deleting route: ' + error.message);
+					}
+				}
+
+				// Export routes as JSON
+				function exportRoutes() {
+					const routes = @data.Routes;
+					const dataStr = JSON.stringify({routes: routes}, null, 2);
+					const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+
+					const exportFileDefaultName = 'enterprise_route_metadata.json';
+
+					const linkElement = document.createElement('a');
+					linkElement.setAttribute('href', dataUri);
+					linkElement.setAttribute('download', exportFileDefaultName);
+					linkElement.click();
+				}
+
+				// Import routes from JSON file
+				function importRoutes(event) {
+					const file = event.target.files[0];
+					if (file) {
+						const reader = new FileReader();
+						reader.onload = function(e) {
+							try {
+								const data = JSON.parse(e.target.result);
+								if (data.routes && Array.isArray(data.routes)) {
+									importRoutesData(data.routes);
+								} else {
+									alert('Invalid file format. Expected {routes: [...]} structure.');
+								}
+							} catch (error) {
+								alert('Error parsing JSON file: ' + error.message);
+							}
+						};
+						reader.readAsText(file);
+					}
+				}
+
+				// Send imported routes to server
+				async function importRoutesData(routes) {
+					try {
+						const response = await fetch('/admin-ui/route_metadata/import', {
+							method: 'POST',
+							headers: {
+								'Content-Type': 'application/json',
+							},
+							body: JSON.stringify({ routes: routes })
+						});
+
+						if (response.ok) {
+							const result = await response.json();
+							alert(`Routes imported successfully! Imported: ${result.imported}, Total: ${result.total}. Refreshing page...`);
+							window.location.reload();
+						} else {
+							const error = await response.json();
+							alert('Error importing routes: ' + (error.error || 'Unknown error'));
+						}
+					} catch (error) {
+						alert('Error importing routes: ' + error.message);
+					}
+				}
+
+				// Attach event listeners on page load
+				document.addEventListener('DOMContentLoaded', function() {
+					// Toggle route details
+					document.querySelectorAll('.toggle-route-btn').forEach(btn => {
+						btn.addEventListener('click', function() {
+							const routeId = this.getAttribute('data-toggle-route');
+							toggleRouteDetails(routeId);
+						});
+					});
+
+					// Edit route
+					document.querySelectorAll('.edit-route-btn').forEach(btn => {
+						btn.addEventListener('click', function() {
+							const routeIndex = this.getAttribute('data-edit-route');
+							openEditModal(parseInt(routeIndex));
+						});
+					});
+
+					// Delete route
+					document.querySelectorAll('.delete-route-btn').forEach(btn => {
+						btn.addEventListener('click', function() {
+							const method = this.getAttribute('data-delete-method');
+							const path = this.getAttribute('data-delete-path');
+							deleteRoute(method, path);
+						});
+					});
+				});
+			</script>
+		</head>
+		<body class="bg-gray-100 dark:bg-gray-950 transition-colors">
+			<div class="min-h-screen flex flex-col">
+				<!-- Header -->
+				<header class="bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700">
+					<div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex items-center justify-between">
+						<div class="flex items-center space-x-4">
+							<a href="/admin-ui/api_analytics" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
+								<i class="fas fa-arrow-left mr-2"></i>Back to Analytics
+							</a>
+							<h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100">Route Metadata Management</h1>
+						</div>
+						<div class="flex items-center space-x-4">
+							<span class="text-xs text-gray-500 dark:text-gray-400">
+								{ fmt.Sprintf("%d routes configured", len(data.Routes)) }
+							</span>
+							@DarkModeToggle()
+							<a href="/admin-ui/logout" class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200">
+								<i class="fas fa-sign-out-alt"></i>
+							</a>
+						</div>
+					</div>
+				</header>
+				<!-- Main Content -->
+				<main class="flex-1 max-w-7xl w-full mx-auto px-4 py-8 sm:px-6 lg:px-8">
+					<!-- Action Bar -->
+					<div class="mb-6 flex flex-wrap gap-4 items-center justify-between">
+						<div class="flex gap-2">
+							<button onclick="openEditModal(-1)" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+								<i class="fas fa-plus mr-2"></i>Add Route
+							</button>
+							<button onclick="exportRoutes()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition">
+								<i class="fas fa-download mr-2"></i>Export JSON
+							</button>
+							<label class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition cursor-pointer">
+								<i class="fas fa-upload mr-2"></i>Import JSON
+								<input type="file" accept=".json" onchange="importRoutes(event)" class="hidden"/>
+							</label>
+						</div>
+						<div class="text-sm text-gray-600 dark:text-gray-400">
+							File: <code class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">application/routes/enterprise_route_metadata.json</code>
+						</div>
+					</div>
+					<!-- Routes Table -->
+					<div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+						<div class="overflow-x-auto">
+							<table class="w-full text-sm">
+								<thead>
+									<tr class="text-left text-xs font-medium text-gray-600 dark:text-gray-400 uppercase bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+										<th class="px-4 py-3 w-12"></th>
+										<th class="px-4 py-3">Method</th>
+										<th class="px-4 py-3">Path</th>
+										<th class="px-4 py-3">Description</th>
+										<th class="px-4 py-3">Roles</th>
+										<th class="px-4 py-3">API Version</th>
+										<th class="px-4 py-3">Public</th>
+										<th class="px-4 py-3">Actions</th>
+									</tr>
+								</thead>
+								<tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+									for i, route := range data.Routes {
+										<tr class="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition">
+											<td class="px-4 py-3">
+												<button data-toggle-route={ fmt.Sprintf("%d", i) } class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 toggle-route-btn">
+													<i id={ fmt.Sprintf("icon-%d", i) } class="fas fa-chevron-right transition-transform duration-200"></i>
+												</button>
+											</td>
+											<td class="px-4 py-3">
+												<span
+													class={
+														"px-2 py-1 rounded text-xs font-semibold whitespace-nowrap",
+														templ.KV("bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200", route.Method == "GET"),
+														templ.KV("bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200", route.Method == "POST"),
+														templ.KV("bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200", route.Method == "PUT"),
+														templ.KV("bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200", route.Method == "PATCH"),
+														templ.KV("bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200", route.Method == "DELETE"),
+														templ.KV("bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200", templ.KV(true, !strings.Contains("GETPOSTPUTPATCHDELETE", route.Method))),
+													}
+												>
+													{ route.Method }
+												</span>
+											</td>
+											<td class="px-4 py-3 text-gray-900 dark:text-gray-100 font-mono text-xs max-w-xs truncate" title={ route.Path }>
+												{ route.Path }
+											</td>
+											<td class="px-4 py-3 text-gray-900 dark:text-gray-100 max-w-xs truncate" title={ route.Description }>
+												{ route.Description }
+											</td>
+											<td class="px-4 py-3">
+												if len(route.AllowedRoles) == 0 {
+													<span class="text-gray-400 dark:text-gray-500 italic">None</span>
+												} else {
+													<div class="flex flex-wrap gap-1">
+														for _, role := range route.AllowedRoles {
+															<span class="px-2 py-1 bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 text-xs rounded">
+																{ role }
+															</span>
+														}
+													</div>
+												}
+											</td>
+											<td class="px-4 py-3 text-gray-900 dark:text-gray-100">
+												{ route.APIVersion }
+											</td>
+											<td class="px-4 py-3">
+												if route.IsPublic {
+													<span class="px-2 py-1 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 text-xs rounded">
+														<i class="fas fa-globe mr-1"></i>Public
+													</span>
+												} else {
+													<span class="px-2 py-1 bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 text-xs rounded">
+														<i class="fas fa-lock mr-1"></i>Protected
+													</span>
+												}
+											</td>
+											<td class="px-4 py-3">
+												<div class="flex gap-2 items-center">
+													<button data-edit-route={ fmt.Sprintf("%d", i) } class="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 edit-route-btn" title="Edit route">
+														<i class="fas fa-edit"></i>
+													</button>
+													<button data-delete-method={ route.Method } data-delete-path={ route.Path } class="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 delete-route-btn" title="Delete route">
+														<i class="fas fa-trash"></i>
+													</button>
+													if route.Deprecated {
+														<span class="px-2 py-1 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 text-xs rounded">
+															<i class="fas fa-exclamation-triangle mr-1"></i>Deprecated
+														</span>
+													}
+												</div>
+											</td>
+										</tr>
+										<tr id={ fmt.Sprintf("details-%d", i) } class="hidden bg-gray-50 dark:bg-gray-700/30">
+											<td colspan="8" class="px-8 py-4">
+												<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+													<div>
+														<strong class="text-gray-700 dark:text-gray-300">Tags:</strong>
+														if len(route.Tags) == 0 {
+															<span class="text-gray-500 dark:text-gray-400">None</span>
+														} else {
+															<div class="flex flex-wrap gap-1 mt-1">
+																for _, tag := range route.Tags {
+																	<span class="px-2 py-1 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs rounded">
+																		{ tag }
+																	</span>
+																}
+															</div>
+														}
+													</div>
+													<div>
+														<strong class="text-gray-700 dark:text-gray-300">Features:</strong>
+														<div class="flex flex-wrap gap-2 mt-1">
+															if route.OwnershipCheck {
+																<span class="px-2 py-1 bg-orange-100 dark:bg-orange-900 text-orange-800 dark:text-orange-200 text-xs rounded">
+																	<i class="fas fa-user-shield mr-1"></i>Ownership Check
+																</span>
+															}
+															if route.AuditRequired {
+																<span class="px-2 py-1 bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-200 text-xs rounded">
+																	<i class="fas fa-history mr-1"></i>Audit Required
+																</span>
+															}
+														</div>
+													</div>
+													if route.Deprecated {
+														<div class="md:col-span-2 lg:col-span-1">
+															<strong class="text-gray-700 dark:text-gray-300">Deprecation:</strong>
+															<div class="mt-1 text-red-600 dark:text-red-400">
+																if route.DeprecatedReason != "" {
+																	<p class="text-xs">{ route.DeprecatedReason }</p>
+																}
+																if route.ReplacedBy != "" {
+																	<p class="text-xs mt-1">
+																		<strong>Replaced by:</strong> { route.ReplacedBy }
+																	</p>
+																}
+															</div>
+														</div>
+													}
+												</div>
+											</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+							if len(data.Routes) == 0 {
+								<div class="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+									<i class="fas fa-route text-4xl mb-4"></i>
+									<p class="text-lg mb-2">No routes configured</p>
+									<p class="text-sm">Add your first route to get started with authorization management</p>
+								</div>
+							}
+						</div>
+					</div>
+					<!-- Footer -->
+					<div class="text-center text-xs text-gray-500 dark:text-gray-400 mt-8 pb-4">
+						<p>Route Metadata Management • Enterprise Authorization Framework</p>
+						<p class="mt-1">Changes are saved to <code class="bg-gray-200 dark:bg-gray-700 px-1">enterprise_route_metadata.json</code></p>
+					</div>
+				</main>
+			</div>
+			<!-- Edit Modal -->
+			<div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+				<div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+					<div class="p-6">
+						<div class="flex items-center justify-between mb-6">
+							<h3 id="modal-title" class="text-lg font-semibold text-gray-900 dark:text-gray-100">Edit Route</h3>
+							<button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+								<i class="fas fa-times"></i>
+							</button>
+						</div>
+						<form id="edit-form" class="space-y-4">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">HTTP Method</label>
+									<select id="edit-method" name="method" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100">
+										<option value="GET">GET</option>
+										<option value="POST">POST</option>
+										<option value="PUT">PUT</option>
+										<option value="DELETE">DELETE</option>
+										<option value="PATCH">PATCH</option>
+										<option value="OPTIONS">OPTIONS</option>
+										<option value="HEAD">HEAD</option>
+									</select>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">API Version</label>
+									<input type="text" id="edit-api-version" name="api_version" placeholder="v1" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"/>
+								</div>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Path</label>
+								<input type="text" id="edit-path" name="path" placeholder="/api/v1/example" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"/>
+							</div>
+							<div>
+								<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Description</label>
+								<input type="text" id="edit-description" name="description" placeholder="Brief description of the endpoint" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"/>
+							</div>
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+								<div>
+									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Allowed Roles</label>
+									<input type="text" id="edit-roles" name="roles" placeholder="admin, staff, user" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"/>
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Comma-separated list</p>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Tags</label>
+									<input type="text" id="edit-tags" name="tags" placeholder="admin, authentication, api" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-gray-100"/>
+									<p class="text-xs text-gray-500 dark:text-gray-400 mt-1">Comma-separated list</p>
+								</div>
+							</div>
+							<div class="flex flex-wrap gap-4">
+								<label class="flex items-center">
+									<input type="checkbox" id="edit-public" name="public" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"/>
+									<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Public Route</span>
+								</label>
+								<label class="flex items-center">
+									<input type="checkbox" id="edit-ownership-check" name="ownership_check" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"/>
+									<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Ownership Check</span>
+								</label>
+								<label class="flex items-center">
+									<input type="checkbox" id="edit-audit-required" name="audit_required" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"/>
+									<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Audit Required</span>
+								</label>
+								<label class="flex items-center">
+									<input type="checkbox" id="edit-deprecated" name="deprecated" class="rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500"/>
+									<span class="ml-2 text-sm text-gray-700 dark:text-gray-300">Deprecated</span>
+								</label>
+							</div>
+							<div class="flex justify-end gap-3 pt-4">
+								<button type="button" onclick="closeEditModal()" class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200">
+									Cancel
+								</button>
+								<button type="button" onclick="saveRoute()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg">
+									Save Route
+								</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</body>
+	</html>
+}

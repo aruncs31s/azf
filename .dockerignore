@@ -1,0 +1,53 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Build artifacts
+bin/
+dist/
+build/
+
+# Test files
+*_test.go
+*.test
+coverage.out
+*.prof
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Database files (but keep during image build)
+gorm.db
+*.db-journal
+
+# Documentation
+*.md
+docs/
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.circleci/
+
+# Dependencies cache
+vendor/
+
+# Environment files (local development)
+.env
+.env.local
+.env.*.local
