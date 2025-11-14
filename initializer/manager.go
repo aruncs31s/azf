@@ -158,6 +158,26 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 		m.logger.Info("successfully copied default policy to", zap.String("path", policyPath))
 	}
 
+	if _, err := os.Stat(modelPath); os.IsNotExist(err) {
+		m.logger.Error(
+			"model file does not exist",
+			zap.String("path", policyPath),
+		)
+		// Attempt to copy the embedded default model file to the specified path
+		// Use embedded default instead of reading from relative path
+		data := config.DefaultModel // Embedded bytes, no file I/O needed
+
+		if len(data) == 0 {
+			m.logger.Error("embedded default model file is empty")
+			return errors.New("model file not found and default not available")
+		}
+		if err := os.WriteFile(modelPath, data, 0644); err != nil {
+			m.logger.Error("failed to write policy file", zap.Error(err))
+			return errors.New("policy file not found and could not write")
+		}
+		m.logger.Info("successfully copied default policy to", zap.String("path", modelPath))
+	}
+
 	adapter := fileadapter.NewAdapter(policyPath)
 	enf, err := casbin.NewEnforcer(modelPath, adapter)
 	if err != nil {
