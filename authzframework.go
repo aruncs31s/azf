@@ -1,4 +1,4 @@
-package AZFauthzframework
+package azf
 
 import (
 	"github.com/aruncs31s/azf/application/handler"
