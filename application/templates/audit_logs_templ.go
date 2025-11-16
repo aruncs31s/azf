@@ -7,11 +7,11 @@ package templates
 
 //lint:file-ignore SA4006 This context is only used if a nested component is present.
 
+import "github.com/a-h/templ"
+import templruntime "github.com/a-h/templ/runtime"
+
 import (
 	"fmt"
-
-	"github.com/a-h/templ"
-	templruntime "github.com/a-h/templ/runtime"
 	"github.com/aruncs31s/azf/application/service"
 )
 
@@ -44,7 +44,7 @@ func AuditLogsPage(data AuditLogsPageData) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Audit Logs - AZF Authorization Framework</title><script src=\"https://cdn.tailwindcss.com\"></script><script defer src=\"https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js\"></script><link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<!doctype html><html lang=\"en\"><head><meta charset=\"UTF-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\"><title>Audit Logs - Go Authorization Framework</title><script src=\"https://cdn.tailwindcss.com\"></script><script defer src=\"https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js\"></script><link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -52,7 +52,7 @@ func AuditLogsPage(data AuditLogsPageData) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</head><body class=\"bg-gray-100 dark:bg-gray-950 transition-colors\"><div class=\"min-h-screen flex flex-col\"><!-- Header --><header class=\"bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50\"><div class=\"max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8\"><div class=\"flex items-center justify-between\"><div class=\"flex items-center space-x-3\"><div class=\"flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg\"><i class=\"fas fa-shield-alt text-white text-lg\"></i></div><div><h1 class=\"text-2xl font-bold text-gray-900 dark:text-gray-100\">AZF AuthZ</h1><p class=\"text-xs text-gray-500 dark:text-gray-400\">Enterprise Authorization Framework</p></div></div><div class=\"flex items-center space-x-4\"><a href=\"/admin-ui\" class=\"text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition\"><i class=\"fas fa-arrow-left mr-2\"></i>Back to Dashboard</a>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 2, "</head><body class=\"bg-gray-100 dark:bg-gray-950 transition-colors\"><div class=\"min-h-screen flex flex-col\"><!-- Header --><header class=\"bg-white dark:bg-gray-900 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-50\"><div class=\"max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8\"><div class=\"flex items-center justify-between\"><div class=\"flex items-center space-x-3\"><div class=\"flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg\"><i class=\"fas fa-shield-alt text-white text-lg\"></i></div><div><h1 class=\"text-2xl font-bold text-gray-900 dark:text-gray-100\">AZFGo AuthZ</h1><p class=\"text-xs text-gray-500 dark:text-gray-400\">Enterprise Authorization Framework</p></div></div><div class=\"flex items-center space-x-4\"><a href=\"/admin-ui\" class=\"text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition\"><i class=\"fas fa-arrow-left mr-2\"></i>Back to Dashboard</a>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -747,7 +747,7 @@ templ PolicyManagementPage(data PolicyManagementPageData) {
 												Use the policy format: <code class="bg-blue-100 dark:bg-blue-900/50 px-2 py-1 rounded text-xs">p, subject, object, action</code>
 											</p>
 											<div class="bg-white dark:bg-gray-800 rounded p-4 mb-3">
-												<pre class="text-sm text-gray-800 dark:text-gray-200">
+												<pre class="text-sm text-gray-800 dark:text-gray-200 overflow-x-auto">
 													<code>
 														# Allow admin to manage all users
 														p, admin, /api/admin/users, *
@@ -776,7 +776,7 @@ templ PolicyManagementPage(data PolicyManagementPageData) {
 												Use grouping rules: <code class="bg-green-100 dark:bg-green-900/50 px-2 py-1 rounded text-xs">g, user, role</code>
 											</p>
 											<div class="bg-white dark:bg-gray-800 rounded p-4 mb-3">
-												<pre class="text-sm text-gray-800 dark:text-gray-200">
+												<pre class="text-sm text-gray-800 dark:text-gray-200 overflow-x-auto">
 													<code>
 														# Assign users to roles
 														g, alice, admin
@@ -801,7 +801,7 @@ templ PolicyManagementPage(data PolicyManagementPageData) {
 								<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 									<div class="bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-lg p-6">
 										<h5 class="font-semibold text-purple-900 dark:text-purple-100 mb-3">Resource Ownership</h5>
-										<pre class="text-xs text-purple-800 dark:text-purple-200 bg-purple-100 dark:bg-purple-900/50 p-3 rounded">
+										<pre class="text-xs text-purple-800 dark:text-purple-200 bg-purple-100 dark:bg-purple-900/50 p-3 rounded overflow-x-auto">
 											<code>
 												p, user_123, /api/users/123, *
 												p, admin, /api/users/*, *
@@ -813,7 +813,7 @@ templ PolicyManagementPage(data PolicyManagementPageData) {
 									</div>
 									<div class="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg p-6">
 										<h5 class="font-semibold text-orange-900 dark:text-orange-100 mb-3">Hierarchical Access</h5>
-										<pre class="text-xs text-orange-800 dark:text-orange-200 bg-orange-100 dark:bg-orange-900/50 p-3 rounded">
+										<pre class="text-xs text-orange-800 dark:text-orange-200 bg-orange-100 dark:bg-orange-900/50 p-3 rounded overflow-x-auto">
 											<code>
 												g, manager, employee
 												g, employee, user
