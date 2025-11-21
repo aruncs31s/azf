@@ -137,15 +137,16 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 		m.logger.Debug("Casbin already initialized on manager")
 		return nil
 	}
+	configDir := "config"
 	// Check if the "config" folder exists in the current directory
-	if _, err := os.Stat("config"); os.IsNotExist(err) {
-		logger.Log.Warn("Config folder does not exist")
-
+	if _, err := os.Stat(configDir); os.IsNotExist(err) {
+		logger.Log.Warn(configDir + " folder does not exist")
+		err := os.MkdirAll(configDir, 0755)
 		if err != nil {
-			logger.Log.Panic("Err creating config folder")
+			logger.Log.Panic("Err creating " + configDir + " folder")
 		}
 	} else {
-		logger.Log.Info("Config folder exists")
+		logger.Log.Info(configDir + " folder exists")
 	}
 	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
 		m.logger.Error(
