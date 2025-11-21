@@ -605,17 +605,16 @@ func (h *performanceHandler) GetFeaturesDocumentationPage(c *gin.Context) {
 
 // CreateRole creates a new role
 func (h *performanceHandler) CreateRole(c *gin.Context) {
-	var req struct {
+	req, err := helperImpl.GetJSONDataFromRequest[struct {
 		Name        string `json:"name" binding:"required"`
 		Description string `json:"description"`
-	}
-
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	}](c)
+	if err != nil {
+		helperImpl.SendBadRequest(c, err.Error())
 		return
 	}
 
-	err := h.profileService.CreateRole(req.Name, req.Description)
+	err = h.profileService.CreateRole(req.Name, req.Description)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -884,9 +883,9 @@ func (h *performanceHandler) ImportRouteMetadata(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Route metadata imported successfully",
+		"message":  "Route metadata imported successfully",
 		"imported": len(importRequest.Routes),
-		"total": len(mergedRoutes),
+		"total":    len(mergedRoutes),
 	})
 }
 

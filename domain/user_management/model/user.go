@@ -20,6 +20,8 @@ type User struct {
 	lastLoginAt   *time.Time
 	blockedReason string
 	metadata      map[string]interface{}
+	oauthProvider string
+	oauthID       string
 }
 
 // NewUser creates a new User aggregate root
@@ -55,16 +57,18 @@ func NewUser(
 	}
 
 	return &User{
-		id:          userID,
-		email:       userEmail,
-		username:    username,
-		displayName: displayName,
-		status:      StatusActive,
-		roles:       make([]*UserRole, 0),
-		isAdmin:     false,
-		createdAt:   time.Now(),
-		updatedAt:   time.Now(),
-		metadata:    make(map[string]interface{}),
+		id:            userID,
+		email:         userEmail,
+		username:      username,
+		displayName:   displayName,
+		status:        StatusActive,
+		roles:         make([]*UserRole, 0),
+		isAdmin:       false,
+		createdAt:     time.Now(),
+		updatedAt:     time.Now(),
+		metadata:      make(map[string]interface{}),
+		oauthProvider: "",
+		oauthID:       "",
 	}, nil
 }
 
@@ -469,4 +473,46 @@ func (u *User) SetBlockedReason(blockedReason string) error {
 	}
 	u.blockedReason = blockedReason
 	return nil
+}
+
+// SetOAuthProvider sets the OAuth provider (used for social login)
+func (u *User) SetOAuthProvider(provider string) error {
+	if u == nil {
+		return errors.New("user cannot be nil")
+	}
+	if len(provider) > 50 {
+		return errors.New("OAuth provider cannot exceed 50 characters")
+	}
+	u.oauthProvider = provider
+	u.updatedAt = time.Now()
+	return nil
+}
+
+// GetOAuthProvider returns the OAuth provider
+func (u *User) GetOAuthProvider() string {
+	if u == nil {
+		return ""
+	}
+	return u.oauthProvider
+}
+
+// SetOAuthID sets the OAuth provider ID (used for social login)
+func (u *User) SetOAuthID(oauthID string) error {
+	if u == nil {
+		return errors.New("user cannot be nil")
+	}
+	if len(oauthID) > 255 {
+		return errors.New("OAuth ID cannot exceed 255 characters")
+	}
+	u.oauthID = oauthID
+	u.updatedAt = time.Now()
+	return nil
+}
+
+// GetOAuthID returns the OAuth provider ID
+func (u *User) GetOAuthID() string {
+	if u == nil {
+		return ""
+	}
+	return u.oauthID
 }

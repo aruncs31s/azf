@@ -24,15 +24,15 @@ var (
 )
 
 var validEventTypes = map[string]bool{
-	"authorization.granted":   true,
-	"authorization.denied":    true,
-	"audit.log.created":       true,
-	"admin.login":             true,
-	"admin.logout":            true,
-	"resource.accessed":       true,
-	"resource.modified":       true,
-	"resource.deleted":        true,
-	"policy.violation":        true,
+	"authorization.granted": true,
+	"authorization.denied":  true,
+	"audit.log.created":     true,
+	"admin.login":           true,
+	"admin.logout":          true,
+	"resource.accessed":     true,
+	"resource.modified":     true,
+	"resource.deleted":      true,
+	"policy.violation":      true,
 }
 
 // NewWebhookEventType creates a new WebhookEventType with validation
@@ -77,19 +77,19 @@ type WebhookEventStatus struct {
 
 // Predefined webhook event statuses
 var (
-	WebhookStatusPending      = &WebhookEventStatus{value: "PENDING"}
-	WebhookStatusDelivered    = &WebhookEventStatus{value: "DELIVERED"}
-	WebhookStatusFailed       = &WebhookEventStatus{value: "FAILED"}
-	WebhookStatusRetrying     = &WebhookEventStatus{value: "RETRYING"}
-	WebhookStatusAbandoned    = &WebhookEventStatus{value: "ABANDONED"}
+	WebhookStatusPending   = &WebhookEventStatus{value: "PENDING"}
+	WebhookStatusDelivered = &WebhookEventStatus{value: "DELIVERED"}
+	WebhookStatusFailed    = &WebhookEventStatus{value: "FAILED"}
+	WebhookStatusRetrying  = &WebhookEventStatus{value: "RETRYING"}
+	WebhookStatusAbandoned = &WebhookEventStatus{value: "ABANDONED"}
 )
 
 var validWebhookStatuses = map[string]bool{
-	"PENDING":    true,
-	"DELIVERED":  true,
-	"FAILED":     true,
-	"RETRYING":   true,
-	"ABANDONED":  true,
+	"PENDING":   true,
+	"DELIVERED": true,
+	"FAILED":    true,
+	"RETRYING":  true,
+	"ABANDONED": true,
 }
 
 // NewWebhookEventStatus creates a new WebhookEventStatus with validation
@@ -144,19 +144,19 @@ func (w *WebhookEventStatus) Equals(other *WebhookEventStatus) bool {
 
 // WebhookEvent is a domain entity representing an authorization event to be sent via webhook
 type WebhookEvent struct {
-	id           string
-	eventType    *WebhookEventType
-	auditLogID   string
-	payload      map[string]interface{}
-	timestamp    time.Time
-	status       *WebhookEventStatus
-	deliveryURL  string
-	retryCount   int
-	maxRetries   int
-	lastError    string
-	lastAttempt  *time.Time
-	nextRetry    *time.Time
-	metadata     map[string]interface{}
+	id          string
+	eventType   *WebhookEventType
+	auditLogID  string
+	payload     map[string]interface{}
+	timestamp   time.Time
+	status      *WebhookEventStatus
+	deliveryURL string
+	retryCount  int
+	maxRetries  int
+	lastError   string
+	lastAttempt *time.Time
+	nextRetry   *time.Time
+	metadata    map[string]interface{}
 }
 
 // NewWebhookEvent creates a new WebhookEvent with business rule validation

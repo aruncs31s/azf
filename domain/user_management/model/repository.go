@@ -7,23 +7,23 @@ import (
 
 // UserSearchFilter contains search and filter parameters
 type UserSearchFilter struct {
-	Status    *UserStatus
-	IsAdmin   *bool
-	RoleName  *string
-	CreatedAfter  *time.Time
-	CreatedBefore *time.Time
+	Status         *UserStatus
+	IsAdmin        *bool
+	RoleName       *string
+	CreatedAfter   *time.Time
+	CreatedBefore  *time.Time
 	LastLoginAfter *time.Time
-	Limit     int
-	Offset    int
+	Limit          int
+	Offset         int
 }
 
 // UserSearchResult contains search results and metadata
 type UserSearchResult struct {
-	Users      []*User
-	Total      int64
-	HasMore    bool
-	Limit      int
-	Offset     int
+	Users   []*User
+	Total   int64
+	HasMore bool
+	Limit   int
+	Offset  int
 }
 
 // UserRepository defines the interface for user management persistence operations
@@ -66,6 +66,10 @@ type UserReader interface {
 	// GetByStatus retrieves all users with a specific status
 	// ctx is used to manage the request lifetime, handle cancellation, and pass deadlines
 	GetByStatus(ctx context.Context, status UserStatus) ([]*User, error)
+
+	// GetByOAuthID retrieves a user by OAuth provider and provider ID
+	// ctx is used to manage the request lifetime, handle cancellation, and pass deadlines
+	GetByOAuthID(ctx context.Context, provider, oauthID string) (*User, error)
 }
 
 // UserWriter defines write operations for user management

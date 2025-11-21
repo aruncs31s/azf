@@ -53,8 +53,8 @@ type SubscriptionStatus struct {
 
 // Predefined subscription statuses
 var (
-	SubscriptionStatusActive   = &SubscriptionStatus{value: "ACTIVE"}
-	SubscriptionStatusInactive = &SubscriptionStatus{value: "INACTIVE"}
+	SubscriptionStatusActive    = &SubscriptionStatus{value: "ACTIVE"}
+	SubscriptionStatusInactive  = &SubscriptionStatus{value: "INACTIVE"}
 	SubscriptionStatusSuspended = &SubscriptionStatus{value: "SUSPENDED"}
 )
 
@@ -106,20 +106,20 @@ func (s *SubscriptionStatus) Equals(other *SubscriptionStatus) bool {
 
 // WebhookSubscription is a domain entity representing a webhook subscription
 type WebhookSubscription struct {
-	id              string
-	endpoint        *WebhookEndpoint
-	eventTypes      []*WebhookEventType
-	status          *SubscriptionStatus
-	secret          string
-	description     string
-	createdAt       time.Time
-	updatedAt       time.Time
-	lastDelivery    *time.Time
-	failureCount    int
-	maxFailures     int
-	filters         map[string]interface{}
-	headers         map[string]string
-	metadata        map[string]interface{}
+	id           string
+	endpoint     *WebhookEndpoint
+	eventTypes   []*WebhookEventType
+	status       *SubscriptionStatus
+	secret       string
+	description  string
+	createdAt    time.Time
+	updatedAt    time.Time
+	lastDelivery *time.Time
+	failureCount int
+	maxFailures  int
+	filters      map[string]interface{}
+	headers      map[string]string
+	metadata     map[string]interface{}
 }
 
 // NewWebhookSubscription creates a new WebhookSubscription with business rule validation
@@ -370,7 +370,7 @@ func (w *WebhookSubscription) RecordFailure() error {
 
 // IsHealthy checks if the subscription is healthy
 func (w *WebhookSubscription) IsHealthy() bool {
-	return w.status.IsActive() && w.failureCount < (w.maxFailures / 2)
+	return w.status.IsActive() && w.failureCount < (w.maxFailures/2)
 }
 
 // WebhookPublisher defines the interface for publishing webhook events

@@ -2,7 +2,6 @@ package initializer
 
 import (
 	"errors"
-	"log"
 	"os"
 	"sync"
 
@@ -73,7 +72,7 @@ func (m *Manager) InitLocalDB(tempDB *gorm.DB) error {
 	// Try to create/open file-backed DB
 	localDBPath := "tmp/AZF_auth_z.db"
 	// best-effort ensure directory exists
-	_ = os.MkdirAll("tmp", 0755)
+	_ = os.MkdirAll("tmp", 0o755)
 
 	db, err := gorm.Open(sqlite.Open(localDBPath), &gorm.Config{
 		SkipDefaultTransaction: true,
@@ -138,7 +137,16 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 		m.logger.Debug("Casbin already initialized on manager")
 		return nil
 	}
+	// Check if the "config" folder exists in the current directory
+	if _, err := os.Stat("config"); os.IsNotExist(err) {
+		logger.Log.Warn("Config folder does not exist")
 
+		if err != nil {
+			logger.Log.Panic("Err creating config folder")
+		}
+	} else {
+		logger.Log.Info("Config folder exists")
+	}
 	if _, err := os.Stat(policyPath); os.IsNotExist(err) {
 		m.logger.Error(
 			"policy file does not exist",
@@ -151,7 +159,7 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 			m.logger.Error("embedded default policy file is empty")
 			return errors.New("policy file not found and default not available")
 		}
-		if err := os.WriteFile(policyPath, data, 0644); err != nil {
+		if err := os.WriteFile(policyPath, data, 0o644); err != nil {
 			m.logger.Error("failed to write policy file", zap.Error(err))
 			return errors.New("policy file not found and could not write")
 		}
@@ -171,7 +179,7 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 			m.logger.Error("embedded default model file is empty")
 			return errors.New("model file not found and default not available")
 		}
-		if err := os.WriteFile(modelPath, data, 0644); err != nil {
+		if err := os.WriteFile(modelPath, data, 0o644); err != nil {
 			m.logger.Error("failed to write policy file", zap.Error(err))
 			return errors.New("policy file not found and could not write")
 		}
@@ -323,7 +331,7 @@ func NewAndInitManager(tempDB *gorm.DB, casbinEnforcer *casbin.Enforcer, zapLogg
 	// initialize DB (will use provided tempDB if non-nil)
 	if err := m.InitLocalDB(tempDB); err != nil {
 		// continue even if DB init fails (caller can decide), but log it
-		log.Printf("warning: InitLocalDB returned error: %v", err)
+		logger.Log.Debug("InitLocalDB returned error", zap.Error(err))
 	}
 
 	// If a casbin enforcer was supplied at construction, mark initialized.

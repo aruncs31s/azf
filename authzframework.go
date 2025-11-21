@@ -3,14 +3,17 @@ package azf
 import (
 	"github.com/aruncs31s/azf/application/handler"
 	"github.com/aruncs31s/azf/application/middleware"
+	"github.com/aruncs31s/azf/application/service"
 	"github.com/aruncs31s/azf/config"
 	"github.com/aruncs31s/azf/infrastructure/enterprise"
 	"github.com/aruncs31s/azf/infrastructure/persistence"
 	"github.com/aruncs31s/azf/initializer"
 	"github.com/aruncs31s/azf/shared/logger"
+	"github.com/aruncs31s/azf/utils"
 	"github.com/casbin/casbin/v2"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
+	"golang.org/x/time/rate"
 	"gorm.io/gorm"
 )
 
@@ -103,6 +106,12 @@ func SetAuthZMiddleware(r *gin.Engine) *gin.Engine {
 	return r
 }
 
+func SetRateLimitMiddleware(r *gin.Engine, requestsPerSecond float64, burst int) *gin.Engine {
+	limiter := middleware.NewIPRateLimiter(rate.Limit(requestsPerSecond), burst)
+	r.Use(middleware.RateLimitMiddleware(limiter))
+	return r
+}
+
 // loadEnterpriseRouteMetadata loads route metadata from a JSON configuration file
 
 func StopAuthZModule() {
@@ -129,9 +138,34 @@ func GetLogger() *zap.Logger {
 func SetupUI(r *gin.Engine) *gin.Engine {
 	configProvider, _ := config.NewAdminConfigProvider()
 	apiPerfHandler := handler.NewPerformanceHandler(configProvider)
+
+	// Initialize rate limiting manager
+	rateLimitManager := handler.NewRateLimitManager(10, 20) // 10 requests/second, burst 20
+	rateLimitHandler := handler.NewRateLimitHandler(rateLimitManager)
+
+	// Initialize OAuth service and handler if user repository is available
+	var oauthHandler *handler.OAuthHandler
+	if mgr != nil && mgr.DB != nil {
+		userRepo := persistence.NewUserRepository(mgr.DB)
+		baseURL := "http://localhost:8080" // default
+		if envURL, err := utils.GetEnv("BASE_URL"); err == nil {
+			baseURL = envURL
+		}
+		oauthService := service.NewOAuthService(userRepo, baseURL, "your-jwt-secret") // TODO: Get JWT secret from config
+		oauthHandler = handler.NewOAuthHandler(oauthService)
+	}
+
 	r.GET("/admin-ui/login", apiPerfHandler.GetLoginPage)
 
 	r.POST("/admin-ui/login/json", apiPerfHandler.LoginJSON)
+
+	// OAuth routes
+	if oauthHandler != nil {
+		r.GET("/admin-ui/oauth/:provider", oauthHandler.Login)
+		r.GET("/admin-ui/oauth/callback/:provider", oauthHandler.Callback)
+		r.GET("/admin-ui/oauth/providers", oauthHandler.GetProviders)
+	}
+
 	r.GET("/admin-ui", middleware.CheckAdminAuth(), apiPerfHandler.GetHomePage)
 	r.GET("/admin-ui/api_analytics", middleware.CheckAdminAuth(), apiPerfHandler.GetAPIAnalyticsPage)
 	r.GET("/admin-ui/api_analytics/endpoint", middleware.CheckAdminAuth(), apiPerfHandler.GetEndpointDetailsPage)
@@ -152,6 +186,18 @@ func SetupUI(r *gin.Engine) *gin.Engine {
 	r.POST("/admin-ui/api/roles/remove", middleware.CheckAdminAuth(), apiPerfHandler.RemoveRoleFromUser)
 	r.GET("/admin-ui/api/roles/users", middleware.CheckAdminAuth(), apiPerfHandler.GetUsersForRole)
 	r.POST("/admin-ui/api/roles/delete", middleware.CheckAdminAuth(), apiPerfHandler.DeleteRole)
+
+	// Rate limiting routes
+	r.GET("/admin-ui/rate-limits", middleware.CheckAdminAuth(), rateLimitHandler.GetRateLimitPage)
+	r.GET("/admin-ui/api/rate-limits/stats", middleware.CheckAdminAuth(), rateLimitHandler.GetRateLimitStats)
+	r.GET("/admin-ui/api/rate-limits/ip/:ip", middleware.CheckAdminAuth(), rateLimitHandler.GetIPStats)
+	r.DELETE("/admin-ui/api/rate-limits/ip/:ip", middleware.CheckAdminAuth(), rateLimitHandler.ResetIPLimit)
+	r.PUT("/admin-ui/api/rate-limits/global", middleware.CheckAdminAuth(), rateLimitHandler.UpdateGlobalLimit)
+	r.POST("/admin-ui/api/rate-limits/endpoint", middleware.CheckAdminAuth(), rateLimitHandler.SetEndpointLimit)
+	r.GET("/admin-ui/api/rate-limits/endpoints", middleware.CheckAdminAuth(), rateLimitHandler.GetEndpointLimits)
+	r.DELETE("/admin-ui/api/rate-limits/reset-all", middleware.CheckAdminAuth(), rateLimitHandler.ResetAllLimits)
+	r.GET("/admin-ui/api/rate-limits/search", middleware.CheckAdminAuth(), rateLimitHandler.SearchRateLimitStats)
+	r.GET("/admin-ui/api/rate-limits/export", middleware.CheckAdminAuth(), rateLimitHandler.ExportRateLimitStats)
 
 	r.GET("/admin-ui/logout", apiPerfHandler.Logout)
 	return r

@@ -25,13 +25,13 @@ type RateLimitStats struct {
 
 // RateLimitManager manages rate limiting statistics and configuration
 type RateLimitManager struct {
-	mu              sync.RWMutex
-	limiters        map[string]*rate.Limiter
-	stats           map[string]*RateLimitStats
-	globalRate      rate.Limit
-	globalBurst     int
-	endpointLimits  map[string]rate.Limit
-	endpointBursts  map[string]int
+	mu             sync.RWMutex
+	limiters       map[string]*rate.Limiter
+	stats          map[string]*RateLimitStats
+	globalRate     rate.Limit
+	globalBurst    int
+	endpointLimits map[string]rate.Limit
+	endpointBursts map[string]int
 }
 
 // NewRateLimitManager creates a new rate limit manager
@@ -216,9 +216,9 @@ func (h *RateLimitHandler) GetRateLimitStats(c *gin.Context) {
 	stats := h.manager.GetAllStats()
 
 	c.JSON(http.StatusOK, gin.H{
-		"stats":        stats,
-		"totalIPs":     len(stats),
-		"blockedIPs":   countBlocked(stats),
+		"stats":         stats,
+		"totalIPs":      len(stats),
+		"blockedIPs":    countBlocked(stats),
 		"totalRequests": sumRequests(stats),
 	})
 }
@@ -320,7 +320,7 @@ func (h *RateLimitHandler) ResetAllLimits(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "All rate limits have been reset",
+		"message":  "All rate limits have been reset",
 		"ipsReset": len(stats),
 	})
 }

@@ -25,6 +25,8 @@ type UserModel struct {
 	LastLoginAt   *time.Time
 	BlockedReason string `gorm:"type:text"`
 	Metadata      string `gorm:"type:text"` // JSON
+	OAuthProvider string `gorm:"size:50"`
+	OAuthID       string `gorm:"size:255"`
 }
 
 func (UserModel) TableName() string {
@@ -42,6 +44,11 @@ type GormUserRepository struct {
 
 func NewGormUserRepository(db *gorm.DB) *GormUserRepository {
 	return &GormUserRepository{db: db}
+}
+
+// NewUserRepository creates a new user repository
+func NewUserRepository(db *gorm.DB) user_management.UserRepository {
+	return NewGormUserRepository(db)
 }
 
 // Helper functions for conversion
@@ -85,6 +92,8 @@ func domainToModel(user *user_management.User) (*UserModel, error) {
 		LastLoginAt:   user.GetLastLoginAt(),
 		BlockedReason: user.GetBlockedReason(),
 		Metadata:      string(metadataJSON),
+		OAuthProvider: user.GetOAuthProvider(),
+		OAuthID:       user.GetOAuthID(),
 	}
 
 	return model, nil
@@ -145,6 +154,10 @@ func modelToDomain(model *UserModel) (*user_management.User, error) {
 	}
 	user.SetAllMetadata(metadata)
 
+	// Set OAuth fields
+	user.SetOAuthProvider(model.OAuthProvider)
+	user.SetOAuthID(model.OAuthID)
+
 	return user, nil
 }
 
@@ -179,6 +192,17 @@ func (r *GormUserRepository) GetByUsername(ctx context.Context, username string)
 			return nil, errors.New("user not found")
 		}
 		return nil, fmt.Errorf("failed to get user by username: %w", err)
+	}
+	return modelToDomain(&model)
+}
+
+func (r *GormUserRepository) GetByOAuthID(ctx context.Context, provider, oauthID string) (*user_management.User, error) {
+	var model UserModel
+	if err := r.db.WithContext(ctx).Where("oauth_provider = ? AND oauth_id = ?", provider, oauthID).First(&model).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("user not found")
+		}
+		return nil, fmt.Errorf("failed to get user by OAuth ID: %w", err)
 	}
 	return modelToDomain(&model)
 }

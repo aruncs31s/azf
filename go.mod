@@ -12,12 +12,14 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/redis/go-redis/v9 v9.16.0
 	go.uber.org/zap v1.27.0
+	golang.org/x/oauth2 v0.33.0
 	golang.org/x/time v0.14.0
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )
 
 require (
+	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	github.com/bmatcuk/doublestar/v4 v4.6.1 // indirect
 	github.com/bytedance/sonic v1.14.0 // indirect
 	github.com/bytedance/sonic/loader v0.3.0 // indirect

@@ -6,10 +6,10 @@ import "errors"
 type UserStatus string
 
 const (
-	StatusActive   UserStatus = "ACTIVE"
-	StatusBlocked  UserStatus = "BLOCKED"
-	StatusPending  UserStatus = "PENDING"
-	StatusDeleted  UserStatus = "DELETED"
+	StatusActive    UserStatus = "ACTIVE"
+	StatusBlocked   UserStatus = "BLOCKED"
+	StatusPending   UserStatus = "PENDING"
+	StatusDeleted   UserStatus = "DELETED"
 	StatusSuspended UserStatus = "SUSPENDED"
 )
 
