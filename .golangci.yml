@@ -1,0 +1,120 @@
+# golangci-lint configuration
+# https://golangci-lint.run/usage/configuration/
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  default: standard
+  enable:
+    # Additional recommended linters
+    - bodyclose     # Check whether HTTP response body is closed
+    - dupl          # Code clone detection
+    - errname       # Check error naming conventions
+    - errorlint     # Find code that will cause problems with error wrapping
+    - exhaustive    # Check exhaustiveness of enum switch statements
+    - gofmt         # Check code is formatted
+    - goimports     # Check imports are sorted
+    - gosec         # Security checks
+    - misspell      # Find commonly misspelled words
+    - nakedret      # Find naked returns in large functions
+    - nilerr        # Find code that returns nil even if it checks error is not nil
+    - nilnil        # Check for nil-nil returns
+    - noctx         # Find HTTP requests without context.Context
+    - prealloc      # Find slice declarations that could be preallocated
+    - predeclared   # Find code that shadows predeclared identifiers
+    - revive        # Drop-in replacement for golint
+    - sqlclosecheck # Check that sql.Rows and sql.Stmt are closed
+    - unconvert     # Remove unnecessary type conversions
+    - unparam       # Find unused function parameters
+    - wastedassign  # Find wasted assignment statements
+    - whitespace    # Detect leading and trailing whitespace
+
+  disable:
+    - gochecknoglobals  # We use some globals for initialization
+
+  settings:
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+
+    govet:
+      enable-all: true
+      disable:
+        - fieldalignment  # Too strict
+
+    gosec:
+      excludes:
+        - G104  # Audit errors not checked (handled by errcheck)
+
+    revive:
+      rules:
+        - name: blank-imports
+        - name: context-as-argument
+        - name: context-keys-type
+        - name: dot-imports
+        - name: error-naming
+        - name: error-return
+        - name: error-strings
+        - name: exported
+        - name: if-return
+        - name: increment-decrement
+        - name: var-naming
+        - name: var-declaration
+        - name: range
+        - name: receiver-naming
+        - name: time-naming
+        - name: unexported-return
+        - name: indent-error-flow
+        - name: errorf
+        - name: empty-block
+        - name: superfluous-else
+        - name: unreachable-code
+        - name: redefines-builtin-id
+
+    dupl:
+      threshold: 150
+
+    nakedret:
+      max-func-lines: 30
+
+    misspell:
+      locale: US
+
+    exhaustive:
+      default-signifies-exhaustive: true
+
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - std-error-handling
+    rules:
+      # Exclude some linters from running on tests files
+      - path: _test\.go
+        linters:
+          - errcheck
+          - dupl
+          - gosec
+          - bodyclose
+
+      # Exclude templ generated files
+      - path: _templ\.go
+        linters:
+          - all
+
+      # Allow unused parameters in interface implementations
+      - linters:
+          - unparam
+        text: "always receives"
+
+    paths:
+      - vendor
+      - tmp
+      - bin
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

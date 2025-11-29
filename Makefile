@@ -1,21 +1,116 @@
-.PHONY: help docker-build docker-run docker-stop docker-clean docker-dev docker-logs docker-shell
+.PHONY: help docker-build docker-run docker-stop docker-clean docker-dev docker-logs docker-shell \
+        lint test coverage generate tidy security build run clean fmt
 
 help:
-	@echo "GO Authorization Framework - Docker Commands"
+	@echo "GO Authorization Framework - Commands"
 	@echo ""
 	@echo "Usage: make [target]"
 	@echo ""
-	@echo "Targets:"
-	@echo "  docker-build       Build Docker image for production"
-	@echo "  docker-run         Run Docker container in production mode"
-	@echo "  docker-stop        Stop running Docker container"
-	@echo "  docker-clean       Remove Docker container and volumes"
-	@echo "  docker-dev         Run Docker container in development mode"
-	@echo "  docker-logs        View Docker container logs"
-	@echo "  docker-shell       Open shell inside running container"
-	@echo "  docker-rebuild     Rebuild Docker image (forced)"
-	@echo "  docker-test        Build and run tests in Docker"
+	@echo "Development:"
+	@echo "  build            Build the application"
+	@echo "  run              Run the application"
+	@echo "  test             Run all tests"
+	@echo "  test-verbose     Run tests with verbose output"
+	@echo "  coverage         Run tests with coverage report"
+	@echo "  coverage-html    Generate HTML coverage report"
+	@echo "  lint             Run golangci-lint"
+	@echo "  lint-fix         Run golangci-lint with auto-fix"
+	@echo "  fmt              Format code with gofmt and goimports"
+	@echo "  tidy             Run go mod tidy"
+	@echo "  generate         Run go generate and templ generate"
+	@echo "  security         Run security checks (gosec, govulncheck)"
+	@echo "  clean            Clean build artifacts"
 	@echo ""
+	@echo "Docker:"
+	@echo "  docker-build     Build Docker image for production"
+	@echo "  docker-run       Run Docker container in production mode"
+	@echo "  docker-stop      Stop running Docker container"
+	@echo "  docker-clean     Remove Docker container and volumes"
+	@echo "  docker-dev       Run Docker container in development mode"
+	@echo "  docker-logs      View Docker container logs"
+	@echo "  docker-shell     Open shell inside running container"
+	@echo "  docker-rebuild   Rebuild Docker image (forced)"
+	@echo "  docker-test      Build and run tests in Docker"
+	@echo ""
+
+# =============================================================================
+# Development Commands
+# =============================================================================
+
+build:
+	@echo "Building application..."
+	go build -o bin/azf ./cmd/...
+
+run: build
+	@echo "Running application..."
+	./bin/azf
+
+test:
+	@echo "Running tests..."
+	go test ./... -race
+
+test-verbose:
+	@echo "Running tests with verbose output..."
+	go test -v ./... -race
+
+coverage:
+	@echo "Running tests with coverage..."
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+
+coverage-html: coverage
+	@echo "Generating HTML coverage report..."
+	go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated at coverage.html"
+
+lint:
+	@echo "Running linter..."
+	golangci-lint run ./...
+
+lint-fix:
+	@echo "Running linter with auto-fix..."
+	golangci-lint run --fix ./...
+
+fmt:
+	@echo "Formatting code..."
+	go fmt ./...
+	goimports -w .
+
+tidy:
+	@echo "Tidying modules..."
+	go mod tidy
+	go mod verify
+
+generate:
+	@echo "Running code generation..."
+	go generate ./...
+	templ generate
+
+security:
+	@echo "Running security checks..."
+	@command -v gosec >/dev/null 2>&1 || { echo "Installing gosec..."; go install github.com/securego/gosec/v2/cmd/gosec@latest; }
+	gosec ./...
+	@command -v govulncheck >/dev/null 2>&1 || { echo "Installing govulncheck..."; go install golang.org/x/vuln/cmd/govulncheck@latest; }
+	govulncheck ./...
+
+clean:
+	@echo "Cleaning build artifacts..."
+	rm -rf bin/
+	rm -f coverage.out coverage.html
+
+# =============================================================================
+# Pre-commit and CI
+# =============================================================================
+
+pre-commit: fmt lint test
+	@echo "Pre-commit checks passed!"
+
+ci: lint test coverage
+	@echo "CI checks passed!"
+
+# =============================================================================
+# Docker Commands
+# =============================================================================
 
 docker-build:
 	@echo "Building Docker image..."

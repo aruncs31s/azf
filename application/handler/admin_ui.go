@@ -318,7 +318,7 @@ func (h *performanceHandler) LoginJSON(c *gin.Context) {
 		"/",
 		"",
 		false,
-		false, // Not HTTP-only to allow JavaScript access
+		true,
 	)
 
 	// Add JWT token to response

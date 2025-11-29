@@ -1,6 +1,6 @@
 module github.com/aruncs31s/azf
 
-go 1.25.3
+go 1.25.2
 
 require (
 	github.com/a-h/templ v0.3.960
@@ -14,6 +14,7 @@ require (
 	go.uber.org/zap v1.27.0
 	golang.org/x/oauth2 v0.33.0
 	golang.org/x/time v0.14.0
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gorm.io/driver/sqlite v1.6.0
 	gorm.io/gorm v1.31.1
 )

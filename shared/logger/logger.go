@@ -1,77 +1,196 @@
 package logger
 
 import (
+	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/aruncs31s/azf/constants"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 )
 
 var Log *zap.Logger
 
+// LogConfig holds logging configuration
+type LogConfig struct {
+	// Directory for log files
+	LogDir string
+	// Filename for the log file
+	Filename string
+	// MaxSize is the maximum size in megabytes before rotation
+	MaxSize int
+	// MaxBackups is the maximum number of old log files to retain
+	MaxBackups int
+	// MaxAge is the maximum number of days to retain old log files
+	MaxAge int
+	// Compress determines if rotated files should be compressed
+	Compress bool
+	// Level is the minimum log level
+	Level zapcore.Level
+	// EnableConsole enables console output
+	EnableConsole bool
+	// ConsoleLevel is the minimum level for console output
+	ConsoleLevel zapcore.Level
+}
+
+// DefaultLogConfig returns sensible defaults for logging
+func DefaultLogConfig() *LogConfig {
+	return &LogConfig{
+		LogDir:        "logs",
+		Filename:      "app.log",
+		MaxSize:       100,  // 100 MB
+		MaxBackups:    3,    // Keep 3 old files
+		MaxAge:        28,   // 28 days
+		Compress:      true, // Compress old files
+		Level:         zapcore.InfoLevel,
+		EnableConsole: true,
+		ConsoleLevel:  zapcore.DebugLevel,
+	}
+}
+
 func InitLogger() {
+	InitLoggerWithConfig(DefaultLogConfig())
+}
+
+// InitLoggerWithConfig initializes the logger with custom configuration
+func InitLoggerWithConfig(cfg *LogConfig) {
 	if Log != nil {
 		return
 	}
-	config := zap.NewProductionEncoderConfig()
-	config.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	// Ensure logs directory exists
-	os.MkdirAll("logs", 0755)
-
-	// Create or open log file
-	logFile, err := os.OpenFile("logs/app.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		panic("Failed to open log file: " + err.Error())
+	if err := os.MkdirAll(cfg.LogDir, 0755); err != nil {
+		panic("Failed to create log directory: " + err.Error())
 	}
 
-	var core zapcore.Core
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
+	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+
+	// Create rotating file writer
+	logPath := filepath.Join(cfg.LogDir, cfg.Filename)
+	fileWriter := &lumberjack.Logger{
+		Filename:   logPath,
+		MaxSize:    cfg.MaxSize,
+		MaxBackups: cfg.MaxBackups,
+		MaxAge:     cfg.MaxAge,
+		Compress:   cfg.Compress,
+	}
+
+	var cores []zapcore.Core
+
+	// Determine log level based on environment
+	logLevel := cfg.Level
 	if os.Getenv("ENV") == constants.APP_PRODUCTION {
-		// In production: write to both file (JSON) and stdout
-		fileCore := zapcore.NewCore(
-			zapcore.NewJSONEncoder(config),
-			zapcore.AddSync(logFile),
-			zap.InfoLevel,
-		)
-		stdoutCore := zapcore.NewCore(
-			zapcore.NewJSONEncoder(config),
-			zapcore.AddSync(os.Stdout),
-			zap.InfoLevel,
-		)
-		core = zapcore.NewTee(fileCore, stdoutCore)
+		logLevel = zapcore.InfoLevel
 	} else {
-		// In development: write to both file (JSON) and stdout (console)
-		fileCore := zapcore.NewCore(
-			zapcore.NewJSONEncoder(config),
-			zapcore.AddSync(logFile),
-			zap.DebugLevel,
-		)
-		stdoutCore := zapcore.NewCore(
-			zapcore.NewConsoleEncoder(config),
-			zapcore.AddSync(os.Stdout),
-			zap.DebugLevel,
-		)
-		core = zapcore.NewTee(fileCore, stdoutCore)
+		logLevel = zapcore.DebugLevel
 	}
 
-	Log = zap.New(core, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	// File core - always JSON format
+	fileCore := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderConfig),
+		zapcore.AddSync(fileWriter),
+		logLevel,
+	)
+	cores = append(cores, fileCore)
+
+	// Console core - human-readable format in development
+	if cfg.EnableConsole {
+		consoleEncoderConfig := encoderConfig
+		consoleEncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+
+		var consoleEncoder zapcore.Encoder
+		if os.Getenv("ENV") == constants.APP_PRODUCTION {
+			consoleEncoder = zapcore.NewJSONEncoder(consoleEncoderConfig)
+		} else {
+			consoleEncoder = zapcore.NewConsoleEncoder(consoleEncoderConfig)
+		}
+
+		consoleCore := zapcore.NewCore(
+			consoleEncoder,
+			zapcore.AddSync(os.Stdout),
+			cfg.ConsoleLevel,
+		)
+		cores = append(cores, consoleCore)
+	}
+
+	// Combine cores
+	core := zapcore.NewTee(cores...)
+
+	Log = zap.New(core,
+		zap.AddCaller(),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+		zap.AddCallerSkip(0),
+	)
+}
+
+// WithContext returns a logger with additional context fields
+func WithContext(fields ...zap.Field) *zap.Logger {
+	if Log == nil {
+		InitLogger()
+	}
+	return Log.With(fields...)
+}
+
+// WithRequestID returns a logger with request ID field
+func WithRequestID(requestID string) *zap.Logger {
+	return WithContext(zap.String("request_id", requestID))
+}
+
+// WithUserID returns a logger with user ID field
+func WithUserID(userID string) *zap.Logger {
+	return WithContext(zap.String("user_id", userID))
+}
+
+// NewRequestLogger creates a logger for a specific request
+func NewRequestLogger(requestID, userID, method, path, clientIP string) *zap.Logger {
+	return WithContext(
+		zap.String("request_id", requestID),
+		zap.String("user_id", userID),
+		zap.String("method", method),
+		zap.String("path", path),
+		zap.String("client_ip", clientIP),
+	)
 }
 
 func Info(msg string, fields ...zap.Field) {
+	if Log == nil {
+		InitLogger()
+	}
 	Log.Info(msg, fields...)
 }
 
 func Error(msg string, fields ...zap.Field) {
+	if Log == nil {
+		InitLogger()
+	}
 	Log.Error(msg, fields...)
 }
 
 func Debug(msg string, fields ...zap.Field) {
+	if Log == nil {
+		InitLogger()
+	}
 	Log.Debug(msg, fields...)
 }
 
 func Warn(msg string, fields ...zap.Field) {
+	if Log == nil {
+		InitLogger()
+	}
 	Log.Warn(msg, fields...)
+}
+
+// Fatal logs a fatal message and exits
+func Fatal(msg string, fields ...zap.Field) {
+	if Log == nil {
+		InitLogger()
+	}
+	Log.Fatal(msg, fields...)
 }
 
 func GetLogger() *zap.Logger {
@@ -79,4 +198,31 @@ func GetLogger() *zap.Logger {
 		InitLogger()
 	}
 	return Log
+}
+
+// Sync flushes any buffered log entries
+func Sync() error {
+	if Log != nil {
+		return Log.Sync()
+	}
+	return nil
+}
+
+// Close syncs and closes the logger
+func Close() error {
+	return Sync()
+}
+
+// SetOutput sets a custom writer for the logger (useful for testing)
+func SetOutput(w io.Writer) {
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(encoderConfig),
+		zapcore.AddSync(w),
+		zapcore.DebugLevel,
+	)
+
+	Log = zap.New(core, zap.AddCaller())
 }

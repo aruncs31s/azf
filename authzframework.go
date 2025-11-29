@@ -1,6 +1,8 @@
 package azf
 
 import (
+	"os"
+
 	"github.com/aruncs31s/azf/application/handler"
 	"github.com/aruncs31s/azf/application/middleware"
 	"github.com/aruncs31s/azf/application/service"
@@ -151,8 +153,14 @@ func SetupUI(r *gin.Engine) *gin.Engine {
 		if envURL, err := utils.GetEnv("BASE_URL"); err == nil {
 			baseURL = envURL
 		}
-		oauthService := service.NewOAuthService(userRepo, baseURL, "your-jwt-secret") // TODO: Get JWT secret from config
-		oauthHandler = handler.NewOAuthHandler(oauthService)
+		// Get JWT secret from environment - fail gracefully if not set
+		jwtSecret := os.Getenv("JWT_SECRET")
+		if jwtSecret == "" {
+			logger.Warn("JWT_SECRET not set, OAuth will not be available")
+		} else {
+			oauthService := service.NewOAuthService(userRepo, baseURL, jwtSecret)
+			oauthHandler = handler.NewOAuthHandler(oauthService)
+		}
 	}
 
 	r.GET("/admin-ui/login", apiPerfHandler.GetLoginPage)
