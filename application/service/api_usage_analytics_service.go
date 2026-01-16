@@ -46,7 +46,7 @@ func NewAPIUsageAnalyticsService(
 func (s *apiUsageAnalyticsService) GetTopEndpointsByUsage(limit int) (*[]api_usage.APIEndpointRanking, error) {
 	rankings, err := s.statsRepo.GetTopEndpointsByUsage(limit)
 	if err != nil {
-		logger.Error("Failed to get top endpoints by usage", zap.Error(err))
+		logger.GetLogger().Error("Failed to get top endpoints by usage", zap.Error(err))
 		return nil, err
 	}
 	return rankings, nil
@@ -56,7 +56,7 @@ func (s *apiUsageAnalyticsService) GetTopEndpointsByUsage(limit int) (*[]api_usa
 func (s *apiUsageAnalyticsService) GetEndpointsByErrorRate(limit int) (*[]api_usage.APIEndpointRanking, error) {
 	rankings, err := s.statsRepo.GetEndpointsByErrorRate(limit)
 	if err != nil {
-		logger.Error("Failed to get endpoints by error rate", zap.Error(err))
+		logger.GetLogger().Error("Failed to get endpoints by error rate", zap.Error(err))
 		return nil, err
 	}
 	return rankings, nil
@@ -66,7 +66,10 @@ func (s *apiUsageAnalyticsService) GetEndpointsByErrorRate(limit int) (*[]api_us
 func (s *apiUsageAnalyticsService) GetEndpointsByResponseTime(limit int) (*[]api_usage.APIEndpointRanking, error) {
 	rankings, err := s.statsRepo.GetEndpointsByResponseTime(limit)
 	if err != nil {
-		logger.Error("Failed to get endpoints by response time", zap.Error(err))
+		logger.GetLogger().Error(
+			"Failed to get endpoints by response time",
+			zap.Error(err),
+		)
 		return nil, err
 	}
 	return rankings, nil

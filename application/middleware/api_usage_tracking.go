@@ -156,23 +156,25 @@ func extractUserID(c *gin.Context) *string {
 }
 
 // storeAPIUsageLog stores the API usage log in the database
-func storeAPIUsageLog(log *api_usage.APIUsageLog) {
+func storeAPIUsageLog(
+	l *api_usage.APIUsageLog,
+) {
 	defer func() {
 		if r := recover(); r != nil {
 			logger.Error("Panic while storing API usage log", zap.Any("error", r))
 		}
 	}()
-
-	if _, err := apiUsageRepo.Create(log); err != nil {
-		logger.Error("Failed to store API usage log",
-			zap.String("endpoint", log.Endpoint),
+	l.LastAccessedAt = time.Now()
+	if _, err := apiUsageRepo.Create(l); err != nil {
+		logger.GetLogger().Error("Failed to store API usage log",
+			zap.String("endpoint", l.Endpoint),
 			zap.Error(err),
 		)
 	}
-	err := UpdateAPIUsageStats(log.Endpoint, log.Method)
+	err := UpdateAPIUsageStats(l.Endpoint, l.Method)
 	if err != nil {
 		// Include zap
-		// logger.Error("Falied to store API Stats")
+		logger.GetLogger().Error("Falied to store API Stats")
 	}
 }
 

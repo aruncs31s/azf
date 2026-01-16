@@ -17,12 +17,8 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"gorm.io/gorm"
+	_ "modernc.org/sqlite"
 )
-
-// EnterpriseRouteMetadataConfig holds the structure of the enterprise route metadata config
-type EnterpriseRouteMetadataConfig struct {
-	Routes []*enterprise.RouteMetadata `json:"routes"`
-}
 
 // mgr holds the initializer.Manager instance created by InitAuthZModule.
 // It is used to centralize DB/enforcer access while still providing compatibility.
@@ -37,7 +33,9 @@ func InitAuthZModule(
 	casbinEnforcer *casbin.Enforcer, // If provide use this also
 ) {
 	// Initialize Logger Before Anything Else
-	logger.InitLogger()
+	if logger.Log == nil {
+		logger.InitLogger()
+	}
 
 	// Create and initialize the Manager. This encapsulates DB and Casbin enforcer.
 	// For compatibility with existing code that still reads package-level variables,
@@ -174,6 +172,7 @@ func SetupUI(r *gin.Engine) *gin.Engine {
 		r.GET("/admin-ui/oauth/providers", oauthHandler.GetProviders)
 	}
 
+	r.GET("", middleware.CheckAdminAuth(), apiPerfHandler.GetHomePage)
 	r.GET("/admin-ui", middleware.CheckAdminAuth(), apiPerfHandler.GetHomePage)
 	r.GET("/admin-ui/api_analytics", middleware.CheckAdminAuth(), apiPerfHandler.GetAPIAnalyticsPage)
 	r.GET("/admin-ui/api_analytics/endpoint", middleware.CheckAdminAuth(), apiPerfHandler.GetEndpointDetailsPage)

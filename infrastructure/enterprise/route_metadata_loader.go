@@ -19,9 +19,16 @@ type EnterpriseRouteMetadataConfig struct {
 
 func LoadEnterpriseRouteMetadata(configPath string) ([]*RouteMetadata, error) {
 	// Default to enterprise_route_metadata.json if not specified
-	//TODO: Move to config class
+	// Use the default configs if none provided
 	if configPath == "" {
-		configPath = filepath.Join("application", "routes", "enterprise_route_metadata.json")
+		logger.GetLogger().Warn(
+			"No enterprise config provided using default config",
+		)
+		configPath = filepath.Join(
+			"application",
+			"routes",
+			"enterprise_route_metadata.json",
+		)
 	}
 
 	// Check if environment variable overrides the config path

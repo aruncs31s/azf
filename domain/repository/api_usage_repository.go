@@ -15,7 +15,9 @@ type APIUsageLogReader interface {
 
 // APIUsageLogWriter defines write operations for API usage logs
 type APIUsageLogWriter interface {
-	Create(log *api_usage.APIUsageLog) (*api_usage.APIUsageLog, error)
+	Create(
+		log *api_usage.APIUsageLog,
+	) (*api_usage.APIUsageLog, error)
 	BatchCreate(logs *[]api_usage.APIUsageLog) error
 	DeleteOlderThan(days int) error
 	DeleteAll() error

@@ -13,6 +13,7 @@ import (
 	"github.com/casbin/casbin/v2"
 	fileadapter "github.com/casbin/casbin/v2/persist/file-adapter"
 	"go.uber.org/zap"
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
@@ -31,7 +32,11 @@ type Manager struct {
 // - db: optional pre-created *gorm.DB to use (if non-nil the Manager will adopt it)
 // - enforcer: optional pre-created *casbin.Enforcer to use
 // - l: optional *zap.Logger; if nil the Manager will use package shared logger
-func NewManager(db *gorm.DB, enforcer *casbin.Enforcer, l *zap.Logger) *Manager {
+func NewManager(
+	db *gorm.DB,
+	enforcer *casbin.Enforcer,
+	l *zap.Logger,
+) *Manager {
 	if l == nil {
 		// Ensure the shared logger is initialized and use it
 		logger.InitLogger()
@@ -47,7 +52,9 @@ func NewManager(db *gorm.DB, enforcer *casbin.Enforcer, l *zap.Logger) *Manager 
 // InitLocalDB ensures the Manager has a working *gorm.DB.
 // If a non-nil tempDB is passed, it will be used as-is. Otherwise the Manager attempts to
 // open a file-backed sqlite DB at /tmp/AZF_auth_z.db, falling back to an in-memory DB if the file cannot be created.
-func (m *Manager) InitLocalDB(tempDB *gorm.DB) error {
+func (m *Manager) InitLocalDB(
+	tempDB *gorm.DB,
+) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -60,7 +67,9 @@ func (m *Manager) InitLocalDB(tempDB *gorm.DB) error {
 	// Use provided DB if available
 	if tempDB != nil {
 		m.DB = tempDB
-		m.logger.Debug("Using provided DB in Manager")
+		m.logger.Info(
+			"Using provided DB in Manager",
+		)
 		// run migrations
 		if err := migrateTable(m.DB); err != nil {
 			m.logger.Error("migration failed on provided DB", zap.Error(err))
@@ -78,37 +87,28 @@ func (m *Manager) InitLocalDB(tempDB *gorm.DB) error {
 		SkipDefaultTransaction: true,
 	})
 	if err != nil {
-		// fallback to in-memory DB
-		m.logger.Error("failed to open file sqlite DB, falling back to in-memory",
-			zap.Error(err),
+		logger.GetLogger().Info(
+			"Using Mysql DB as fallback",
 		)
-		memDB, memErr := gorm.Open(sqlite.Open("file::memory:?cache=shared"), &gorm.Config{
-			SkipDefaultTransaction: true,
-		})
-		if memErr != nil {
-			m.logger.Error("failed to open in-memory sqlite fallback",
-				zap.Error(memErr),
-			)
-			return memErr
-		}
-		m.DB = memDB
-		if err := migrateTable(m.DB); err != nil {
-			m.logger.Error("migration failed on in-memory DB",
-				zap.Error(err),
-			)
-			return err
-		}
-		m.logger.Info("initialized in-memory local DB")
-		return nil
+		m.DB = connectToMYQSLDB()
+	} else {
+		m.DB = db
 	}
 
-	m.DB = db
 	if err := migrateTable(m.DB); err != nil {
 		m.logger.Error("migration failed on file-backed DB", zap.Error(err))
 		return err
 	}
 	m.logger.Info("initialized file-backed local DB", zap.String("path", localDBPath))
 	return nil
+}
+func connectToMYQSLDB() *gorm.DB {
+	dsn := config.GetLocalDBDSN()
+	db, err := gorm.Open(mysql.Open(dsn))
+	if err != nil {
+		return nil
+	}
+	return db
 }
 
 // migrateTable runs AutoMigrate for API usage tables on the provided DB.
@@ -134,7 +134,9 @@ func (m *Manager) InitCasbin(modelPath, policyPath string) error {
 	defer m.mu.Unlock()
 
 	if m.Enforcer != nil && m.initialized {
-		m.logger.Debug("Casbin already initialized on manager")
+		m.logger.Debug(
+			"Casbin already initialized on manager",
+		)
 		return nil
 	}
 	configDir := "config"
@@ -326,13 +328,23 @@ func (m *Manager) Close() error {
 
 // NewAndInitManager constructs a Manager and initializes DB and Casbin (using defaults).
 // If a pre-existing casbin enforcer is provided it will be used instead of initializing from files.
-func NewAndInitManager(tempDB *gorm.DB, casbinEnforcer *casbin.Enforcer, zapLogger *zap.Logger) (*Manager, error) {
-	m := NewManager(tempDB, casbinEnforcer, zapLogger)
+func NewAndInitManager(
+	tempDB *gorm.DB,
+	casbinEnforcer *casbin.Enforcer,
+	zapLogger *zap.Logger,
+) (*Manager, error) {
+	m := NewManager(
+		tempDB,
+		casbinEnforcer,
+		zapLogger,
+	)
 
 	// initialize DB (will use provided tempDB if non-nil)
 	if err := m.InitLocalDB(tempDB); err != nil {
-		// continue even if DB init fails (caller can decide), but log it
-		logger.Log.Debug("InitLocalDB returned error", zap.Error(err))
+		logger.Log.Debug(
+			"InitLocalDB returned error",
+			zap.Error(err),
+		)
 	}
 
 	// If a casbin enforcer was supplied at construction, mark initialized.
@@ -351,9 +363,7 @@ func NewAndInitManager(tempDB *gorm.DB, casbinEnforcer *casbin.Enforcer, zapLogg
 	if err != nil {
 		policyPath = config.CASBIN_POLICY_FILE
 	}
-	// otherwise initialize from default config paths
 	if err := m.InitCasbin(modelPath, policyPath); err != nil {
-		// return the error so callers can decide how to proceed
 		return m, err
 	}
 	return m, nil
